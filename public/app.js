@@ -2,9 +2,14 @@ const state = {
   presets: [],
   customSensitivities: [],
   analyses: [],
+  parserStatus: {
+    openaiConfigured: false,
+    openaiModel: null
+  },
   selectedImage: null,
   imagePreviewUrl: "",
-  lastExtractionSource: null
+  lastExtractionSource: null,
+  ocrLibraryPromise: null
 };
 
 const form = document.querySelector("#analysis-form");
@@ -19,9 +24,12 @@ const customTermsInput = document.querySelector("#custom-terms");
 const customItemTemplate = document.querySelector("#custom-item-template");
 const historyItemTemplate = document.querySelector("#history-item-template");
 const ingredientsTextInput = document.querySelector("#ingredients-text");
+const cameraInput = document.querySelector("#camera-input");
 const imageInput = document.querySelector("#image-input");
-const extractButton = document.querySelector("#extract-button");
+const cameraButton = document.querySelector("#camera-button");
+const uploadButton = document.querySelector("#upload-button");
 const clearImageButton = document.querySelector("#clear-image-button");
+const aiCleanupButton = document.querySelector("#ai-cleanup-button");
 const imagePreview = document.querySelector("#image-preview");
 const ocrStatus = document.querySelector("#ocr-status");
 
@@ -53,6 +61,14 @@ function formatSource(source) {
     return "Image OCR";
   }
 
+  if (source.type === "image_ai") {
+    return "AI image parse";
+  }
+
+  if (source.type === "text_ai_refined") {
+    return "AI text cleanup";
+  }
+
   if (source.type === "image_selected") {
     return "Image attached";
   }
@@ -67,6 +83,13 @@ function getSelectedPresets() {
 function setOcrStatus(message) {
   ocrStatus.className = "ocr-status";
   ocrStatus.textContent = message;
+}
+
+function setPhotoButtonsDisabled(disabled) {
+  cameraButton.disabled = disabled;
+  uploadButton.disabled = disabled;
+  clearImageButton.disabled = disabled;
+  aiCleanupButton.disabled = disabled;
 }
 
 function resetImagePreviewUrl() {
@@ -109,11 +132,12 @@ function clearSelectedImage(options = {}) {
     state.lastExtractionSource = null;
   }
 
+  cameraInput.value = "";
   imageInput.value = "";
   renderImagePreview();
 
   if (!preserveStatus) {
-    setOcrStatus("No image selected. You can still paste ingredients manually below.");
+    setOcrStatus(defaultParserMessage());
   }
 }
 
@@ -165,23 +189,93 @@ function buildSourcePayload() {
   };
 }
 
+function defaultParserMessage() {
+  if (state.parserStatus.openaiConfigured) {
+    return `AI parser ready (${state.parserStatus.openaiModel}). Take a photo, upload an image, or improve pasted text with AI.`;
+  }
+
+  return "OpenAI parser not configured. Photo parsing will use the local OCR fallback.";
+}
+
+async function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadImageElement(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not load the selected image."));
+    image.src = dataUrl;
+  });
+}
+
+async function buildUploadImageData(file) {
+  const sourceDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImageElement(sourceDataUrl);
+  const maxDimension = 1600;
+  const largestSide = Math.max(image.width, image.height) || 1;
+  const scale = Math.min(1, maxDimension / largestSide);
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Image processing is not supported in this browser.");
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+  context.drawImage(image, 0, 0, width, height);
+
+  return {
+    imageDataUrl: canvas.toDataURL("image/jpeg", 0.82),
+    width,
+    height
+  };
+}
+
+function loadOcrLibrary() {
+  if (window.Tesseract) {
+    return Promise.resolve(window.Tesseract);
+  }
+
+  if (state.ocrLibraryPromise) {
+    return state.ocrLibraryPromise;
+  }
+
+  state.ocrLibraryPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+    script.async = true;
+    script.onload = () => resolve(window.Tesseract);
+    script.onerror = () => reject(new Error("Could not load OCR support on this device/network."));
+    document.head.appendChild(script);
+  });
+
+  return state.ocrLibraryPromise;
+}
+
 async function extractTextFromImage() {
   if (!state.selectedImage) {
-    setOcrStatus("Choose an image first.");
+    setOcrStatus("Take a photo or upload an image first.");
     return;
   }
 
-  if (!window.Tesseract) {
-    setOcrStatus("OCR library failed to load. You can still paste ingredients manually.");
-    return;
-  }
-
-  extractButton.disabled = true;
-  clearImageButton.disabled = true;
-  setOcrStatus("Reading label photo...");
+  setPhotoButtonsDisabled(true);
+  setOcrStatus("Loading OCR support...");
 
   try {
-    const result = await window.Tesseract.recognize(state.selectedImage, "eng", {
+    const Tesseract = await loadOcrLibrary();
+    setOcrStatus("Reading label photo...");
+
+    const result = await Tesseract.recognize(state.selectedImage, "eng", {
       logger(message) {
         if (message.status === "recognizing text") {
           setOcrStatus(`Reading label photo... ${Math.round(message.progress * 100)}%`);
@@ -200,14 +294,129 @@ async function extractTextFromImage() {
       fileName: state.selectedImage.name,
       extractionMethod: "tesseract.js"
     };
-    setOcrStatus("Text extracted. Review it, correct it if needed, then analyze and save.");
+    setOcrStatus("Photo parsed. Review the extracted text if needed, then analyze and save.");
     statusBanner.className = "status-banner active";
-    statusBanner.textContent = "OCR finished. Review the extracted ingredients before saving.";
+    statusBanner.textContent = "Photo parsed successfully. Review the extracted ingredients, then analyze and save.";
   } catch (error) {
     setOcrStatus(error.message || "Could not extract text from the image.");
   } finally {
-    extractButton.disabled = false;
-    clearImageButton.disabled = false;
+    setPhotoButtonsDisabled(false);
+  }
+}
+
+async function parsePhotoWithAI() {
+  if (!state.selectedImage) {
+    throw new Error("Take a photo or upload an image first.");
+  }
+
+  setPhotoButtonsDisabled(true);
+  setOcrStatus(`Uploading photo to AI parser (${state.parserStatus.openaiModel})...`);
+
+  try {
+    const imagePayload = await buildUploadImageData(state.selectedImage);
+    const response = await fetch("/api/parse-photo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        fileName: state.selectedImage.name,
+        imageDataUrl: imagePayload.imageDataUrl
+      })
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Could not parse the photo with AI.");
+    }
+
+    if (!String(payload?.parse?.ingredientsText || "").trim()) {
+      throw new Error("AI parsing returned no ingredient text.");
+    }
+
+    if (!document.querySelector("#product-name").value.trim() && payload.parse.productName) {
+      document.querySelector("#product-name").value = payload.parse.productName;
+    }
+
+    ingredientsTextInput.value = payload.parse.ingredientsText || "";
+    state.lastExtractionSource = payload.parse.source || null;
+    setOcrStatus("Photo parsed with AI. Review the extracted text if needed, then analyze and save.");
+    statusBanner.className = "status-banner active";
+    statusBanner.textContent = "AI photo parse finished. Review the extracted ingredients, then analyze and save.";
+  } finally {
+    setPhotoButtonsDisabled(false);
+  }
+}
+
+async function handleSelectedFile(file) {
+  state.selectedImage = file || null;
+  state.lastExtractionSource = null;
+  renderImagePreview();
+
+  if (!state.selectedImage) {
+    setOcrStatus("No image selected yet. On phone, tap Take photo. On desktop, use Upload image.");
+    return;
+  }
+
+  setOcrStatus(`Selected ${state.selectedImage.name}. Parsing photo now...`);
+
+  if (state.parserStatus.openaiConfigured) {
+    try {
+      await parsePhotoWithAI();
+      return;
+    } catch (error) {
+      setOcrStatus(`${error.message} Falling back to local OCR...`);
+    }
+  }
+
+  await extractTextFromImage();
+}
+
+async function refineCurrentTextWithAI() {
+  if (!state.parserStatus.openaiConfigured) {
+    setOcrStatus("OpenAI parser is not configured.");
+    return;
+  }
+
+  const rawText = ingredientsTextInput.value.trim();
+
+  if (!rawText) {
+    setOcrStatus("Paste or extract some text first, then improve it with AI.");
+    return;
+  }
+
+  aiCleanupButton.disabled = true;
+  setOcrStatus(`Cleaning text with AI (${state.parserStatus.openaiModel})...`);
+
+  try {
+    const response = await fetch("/api/refine-text", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        productName: document.querySelector("#product-name").value,
+        rawText
+      })
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error || "Could not improve the text with AI.");
+    }
+
+    ingredientsTextInput.value = payload.parse.ingredientsText || rawText;
+
+    if (!document.querySelector("#product-name").value.trim() && payload.parse.productName) {
+      document.querySelector("#product-name").value = payload.parse.productName;
+    }
+
+    state.lastExtractionSource = payload.parse.source || null;
+    setOcrStatus("Text cleaned with AI. Review it, then analyze and save.");
+  } catch (error) {
+    setOcrStatus(error.message || "Could not improve the text with AI.");
+  } finally {
+    aiCleanupButton.disabled = false;
   }
 }
 
@@ -277,7 +486,7 @@ function renderResults(analysis) {
     resultsContainer.className = "results empty-results";
     resultsContainer.textContent = "";
     statusBanner.className = "status-banner";
-    statusBanner.textContent = "Choose sensitivities, paste ingredients, and run an analysis.";
+    statusBanner.textContent = "Choose sensitivities, take a photo or paste ingredients, and run an analysis.";
     return;
   }
 
@@ -401,6 +610,18 @@ async function loadPresets() {
   renderPresets();
 }
 
+async function loadParserStatus() {
+  const response = await fetch("/api/parser-status");
+  const payload = await response.json();
+
+  state.parserStatus = {
+    openaiConfigured: Boolean(payload.openaiConfigured),
+    openaiModel: payload.openaiModel || null
+  };
+  aiCleanupButton.hidden = !state.parserStatus.openaiConfigured;
+  setOcrStatus(defaultParserMessage());
+}
+
 async function loadHistory() {
   const response = await fetch("/api/analyses");
   const payload = await response.json();
@@ -427,26 +648,36 @@ document.querySelector("#add-custom").addEventListener("click", () => {
 
 imageInput.addEventListener("change", () => {
   const [file] = imageInput.files || [];
-  state.selectedImage = file || null;
-  state.lastExtractionSource = null;
-  renderImagePreview();
-
-  if (state.selectedImage) {
-    setOcrStatus(`Selected ${state.selectedImage.name}. Extract text when ready.`);
-    return;
-  }
-
-  setOcrStatus("No image selected. You can still paste ingredients manually below.");
+  imageInput.value = "";
+  handleSelectedFile(file).catch((error) => {
+    setOcrStatus(error.message || "Could not parse the selected image.");
+  });
 });
 
-extractButton.addEventListener("click", () => {
-  extractTextFromImage().catch((error) => {
-    setOcrStatus(error.message || "Could not extract text from the image.");
+cameraInput.addEventListener("change", () => {
+  const [file] = cameraInput.files || [];
+  cameraInput.value = "";
+  handleSelectedFile(file).catch((error) => {
+    setOcrStatus(error.message || "Could not parse the selected photo.");
   });
+});
+
+cameraButton.addEventListener("click", () => {
+  cameraInput.click();
+});
+
+uploadButton.addEventListener("click", () => {
+  imageInput.click();
 });
 
 clearImageButton.addEventListener("click", () => {
   clearSelectedImage();
+});
+
+aiCleanupButton.addEventListener("click", () => {
+  refineCurrentTextWithAI().catch((error) => {
+    setOcrStatus(error.message || "Could not improve the text with AI.");
+  });
 });
 
 form.addEventListener("submit", async (event) => {
@@ -494,7 +725,7 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-Promise.all([loadPresets(), loadHistory()]).catch((error) => {
+Promise.all([loadPresets(), loadHistory(), loadParserStatus()]).catch((error) => {
   statusBanner.className = "status-banner active";
   statusBanner.textContent = `Failed to load app data: ${error.message}`;
 });

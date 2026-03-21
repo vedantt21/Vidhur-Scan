@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#b4572f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ingredient Screen" />
     <title>Ingredient Screen</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -21,7 +24,7 @@
         <aside class="hero-panel">
           <p class="hero-panel-label">What this version does</p>
           <ul class="hero-points">
-            <li>Paste ingredients or upload a label photo from your phone</li>
+            <li>Take a label photo on your phone and parse it automatically</li>
             <li>Apply preset dietary and religious screens</li>
             <li>Add your own keyword-based custom sensitivities</li>
             <li>Save analyses in a persistent local store</li>
@@ -45,35 +48,41 @@
             <div class="field">
               <div class="field-row">
                 <span>Label photo</span>
-                <small>Upload an image or use your phone camera, then review the extracted text.</small>
+                <small>Phone-ready: take a photo or upload an image. If AI parsing is configured, the photo is cleaned server-side first.</small>
               </div>
 
-              <label class="upload-box" for="image-input">
-                <input id="image-input" type="file" accept="image/*" capture="environment" />
-                <strong>Choose a label photo</strong>
-                <p>Supports mobile camera capture and image uploads.</p>
-              </label>
+              <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
+              <input id="image-input" type="file" accept="image/*" hidden />
+
+              <div class="upload-box">
+                <strong>Photo-first flow</strong>
+                <p>Take a picture or choose an existing label photo. The app will extract ingredients into the box below.</p>
+              </div>
 
               <div class="upload-actions">
-                <button id="extract-button" class="secondary-button" type="button">Extract text from image</button>
+                <button id="camera-button" class="secondary-button" type="button">Take photo</button>
+                <button id="upload-button" class="secondary-button" type="button">Upload image</button>
                 <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
               </div>
 
               <div id="ocr-status" class="ocr-status empty-state">
-                No image selected. You can still paste ingredients manually below.
+                No image selected yet. On phone, tap Take photo. On desktop, use Upload image.
               </div>
 
               <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
             </div>
 
             <label class="field">
-              <span>Ingredients</span>
+              <span>Extracted ingredients</span>
               <textarea
                 id="ingredients-text"
                 name="ingredientsText"
                 rows="8"
-                placeholder="Paste the full ingredients list here, or extract it from a label photo above"
+                placeholder="The app will fill this from your photo. You can also still paste or correct the text manually."
               ></textarea>
+              <div class="text-actions">
+                <button id="ai-cleanup-button" class="secondary-button" type="button" hidden>Improve text with AI</button>
+              </div>
             </label>
 
             <div class="field">
@@ -110,7 +119,7 @@
           </div>
 
           <div id="status-banner" class="status-banner">
-            Choose sensitivities, paste ingredients, and run an analysis.
+            Choose sensitivities, take a photo or paste ingredients, and run an analysis.
           </div>
 
           <div id="results" class="results empty-results"></div>
@@ -144,7 +153,6 @@
       </button>
     </template>
 
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

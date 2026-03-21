@@ -438,15 +438,17 @@ function sanitizeSource(source) {
   const type = String(source.type || "").trim();
   const fileName = String(source.fileName || "").trim();
   const extractionMethod = String(source.extractionMethod || "").trim();
+  const model = String(source.model || "").trim();
 
-  if (!type && !fileName && !extractionMethod) {
+  if (!type && !fileName && !extractionMethod && !model) {
     return null;
   }
 
   return {
     type: type || "manual_text",
     fileName: fileName || null,
-    extractionMethod: extractionMethod || null
+    extractionMethod: extractionMethod || null,
+    model: model || null
   };
 }
 

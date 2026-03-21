@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 
 const { analyzeIngredients, listPresetSensitivities } = require("./analyzer");
 const { ensureStore, listRecentAnalyses, saveAnalysis } = require("./database");
+const { getParserStatus, parseIngredientsFromImage, refineIngredientsText } = require("./openai");
 
 const HOST = process.env.HOST || "127.0.0.1";
 const PORT = Number(process.env.PORT || 3000);
@@ -30,14 +31,14 @@ function sendJson(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
-async function readRequestBody(request) {
+async function readRequestBody(request, maxBytes = 1_000_000) {
   const chunks = [];
   let total = 0;
 
   for await (const chunk of request) {
     total += chunk.length;
 
-    if (total > 1_000_000) {
+    if (total > maxBytes) {
       throw new Error("Request body too large.");
     }
 
@@ -81,9 +82,64 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/parser-status") {
+    sendJson(response, 200, getParserStatus());
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/analyses") {
     const analyses = await listRecentAnalyses();
     sendJson(response, 200, { analyses });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/parse-photo") {
+    if (!getParserStatus().openaiConfigured) {
+      sendJson(response, 503, { error: "OpenAI parsing is not configured on this server." });
+      return;
+    }
+
+    let body;
+
+    try {
+      body = await readRequestBody(request, 8_000_000);
+    } catch (error) {
+      sendJson(response, 400, { error: "Invalid JSON payload." });
+      return;
+    }
+
+    try {
+      const parse = await parseIngredientsFromImage(body);
+      sendJson(response, 200, { parse });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Could not parse the photo." });
+    }
+
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/refine-text") {
+    if (!getParserStatus().openaiConfigured) {
+      sendJson(response, 503, { error: "OpenAI parsing is not configured on this server." });
+      return;
+    }
+
+    let body;
+
+    try {
+      body = await readRequestBody(request);
+    } catch (error) {
+      sendJson(response, 400, { error: "Invalid JSON payload." });
+      return;
+    }
+
+    try {
+      const parse = await refineIngredientsText(body);
+      sendJson(response, 200, { parse });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Could not refine the text." });
+    }
+
     return;
   }
 

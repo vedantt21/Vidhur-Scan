@@ -155,5 +155,115 @@
       }
     ],
     "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "72b7541d-ccdc-4755-ba32-bcc3622d8a31",
+    "createdAt": "2026-03-21T10:47:13.941Z",
+    "productName": "",
+    "ingredientsText": "sf the, TN, So, i Lh i, i : = ein ., J 8 5 a, Sec urger S., Lie, . i dan ar, - Hadi. -, | rein | Pw tite | | TONG, — . & 3, & Ba i ¥ PE ad - 4 . - A,q, USE we 2 4 8, A ge . vol es k &, aa - : 4 - Feng - Fan, a Adan Ni Dute. 38 we. 1 Le ae, i dude Wl eta spp ‘ VE, AA » 4 / 3 & : a -, Sona i \" EL», pe o Shur Be 4 » Er TW hy, Ga ARES, Fa, Y iti Ld v “3 & Shr, he, aanallesey a hohwy NE “ : 3 pia. &., ; Eo FR si BE APH 4 ‘ww bist mg, meni RE py TN 2 ’ i’. ¥ *er a, 5 De asin = Lhe LY & Minne LR, —— whe, 2 _—t LE, su SET “aarties tated aorew Fe Peer ages iy oy a ., 5 2 * Log 9 0 atty TERE BT Dane AE al pp me all 4, - adit thet of E7008) « mans Less Tha 20% 33 35 A 3%, OE, 48 \\, - fs, . h a, Fe ad Ld La dF oe fee ne Rene i. anther Par, am Salt. Owor Mustard Ursor Powe 2d, brpspryative Praag Aahate Nata mows pe, dt 3 Palle, potere Papers heoreu » Ag Ny w BOR Ramu Fe aN, i Baik \" ned Silast . » och of Fe. es, neg RI. ACHES. TWD LASTALL, PRENwS WS OTS HD RNC Vi am, aloo ns Pd HS, ¢ lL) a, ¢ i i 1 p 1 dh rh y re : is TS, i i i t ; :, i i H i ha “a, { ; i ', | RR | womb, i ; i | § i, i i 1} & 3, ig i | i 28 -, i { - Toa, : | : i Bl i B ob, ! i ] E 1 § i 4 p cin, ha, : 1 1 1 : i 1 4 Ras TE, '@ 1 ] 4 3 edi Bi 2 Ee, y i ] : (=, - b4 f of 5 fi, \" Ek . Ry \"ay hy, a CUR, FARE, CRON he, 4 a (i 2 ¥ be, A BE, . iy -, “4 N 5, i ) 7, Pe",
+    "ingredients": [
+      "sf the",
+      "TN",
+      "So",
+      "i Lh i",
+      "i : = ein .",
+      "J 8 5 a",
+      "Sec urger S.",
+      "Lie",
+      ". i dan ar",
+      "- Hadi. -",
+      "| rein | Pw tite | | TONG",
+      "— . & 3",
+      "& Ba i ¥ PE ad - 4 . - A",
+      "q",
+      "USE we 2 4 8",
+      "A ge . vol es k &",
+      "aa - : 4 - Feng - Fan",
+      "a Adan Ni Dute. 38 we. 1 Le ae",
+      "i dude Wl eta spp ‘ VE",
+      "AA » 4 / 3 & : a -",
+      "Sona i \" EL»",
+      "pe o Shur Be 4 » Er TW hy",
+      "Ga ARES",
+      "Fa",
+      "Y iti Ld v “3 & Shr",
+      "he",
+      "aanallesey a hohwy NE “ : 3 pia. &.",
+      "Eo FR si BE APH 4 ‘ww bist mg",
+      "meni RE py TN 2 ’ i’. ¥ *er a",
+      "5 De asin = Lhe LY & Minne LR",
+      "—— whe",
+      "2 _—t LE",
+      "su SET “aarties tated aorew Fe Peer ages iy oy a .",
+      "5 2 * Log 9 0 atty TERE BT Dane AE al pp me all 4",
+      "- adit thet of E7008) « mans Less Tha 20% 33 35 A 3%",
+      "OE",
+      "48 \\",
+      "- fs",
+      ". h a",
+      "Fe ad Ld La dF oe fee ne Rene i. anther Par",
+      "am Salt. Owor Mustard Ursor Powe 2d",
+      "brpspryative Praag Aahate Nata mows pe",
+      "dt 3 Palle",
+      "potere Papers heoreu » Ag Ny w BOR Ramu Fe aN",
+      "i Baik \" ned Silast . » och of Fe. es",
+      "neg RI. ACHES. TWD LASTALL",
+      "PRENwS WS OTS HD RNC Vi am",
+      "aloo ns Pd HS",
+      "¢ lL) a",
+      "¢ i i 1 p 1 dh rh y re : is TS",
+      "i i i t",
+      ":",
+      "i i H i ha “a",
+      "{",
+      "i '",
+      "| RR | womb",
+      "i",
+      "i | § i",
+      "i i 1} & 3",
+      "ig i | i 28 -",
+      "i { - Toa",
+      ": | : i Bl i B ob",
+      "! i ] E 1 § i 4 p cin",
+      "ha",
+      ": 1 1 1 : i 1 4 Ras TE",
+      "'@ 1 ] 4 3 edi Bi 2 Ee",
+      "y i ] : (=, - b4 f of 5 fi, \" Ek . Ry \"ay hy, a CUR, FARE, CRON he, 4 a (i 2 ¥ be, A BE, . iy -, “4 N 5, i ) 7, Pe"
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "Egg",
+        "terms": [
+          "Egg"
+        ]
+      }
+    ],
+    "source": {
+      "type": "image_ocr",
+      "fileName": "image.jpg",
+      "extractionMethod": "tesseract.js"
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:Egg",
+        "label": "Egg",
+        "summary": "Custom keyword match.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
   }
 ]

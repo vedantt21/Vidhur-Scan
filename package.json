@@ -5,6 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
+    "start:phone": "HOST=0.0.0.0 node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --test"
   },
