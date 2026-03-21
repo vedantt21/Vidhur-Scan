@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingredient Screen</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">First Step</p>
+          <h1>Paste ingredients or scan a label. See what needs a second look.</h1>
+          <p class="hero-text">
+            Built for fast screening across vegetarian, vegan, halal, kosher, and custom sensitivities.
+            Every check is saved so repeated products become easier to review later.
+          </p>
+        </div>
+
+        <aside class="hero-panel">
+          <p class="hero-panel-label">What this version does</p>
+          <ul class="hero-points">
+            <li>Paste ingredients or upload a label photo from your phone</li>
+            <li>Apply preset dietary and religious screens</li>
+            <li>Add your own keyword-based custom sensitivities</li>
+            <li>Save analyses in a persistent local store</li>
+          </ul>
+        </aside>
+      </header>
+
+      <main class="layout">
+        <section class="panel input-panel">
+          <div class="section-heading">
+            <p class="section-kicker">Input</p>
+            <h2>Screen a product</h2>
+          </div>
+
+          <form id="analysis-form" class="analysis-form">
+            <label class="field">
+              <span>Product name</span>
+              <input id="product-name" name="productName" type="text" placeholder="Optional: Masala chips" />
+            </label>
+
+            <div class="field">
+              <div class="field-row">
+                <span>Label photo</span>
+                <small>Upload an image or use your phone camera, then review the extracted text.</small>
+              </div>
+
+              <label class="upload-box" for="image-input">
+                <input id="image-input" type="file" accept="image/*" capture="environment" />
+                <strong>Choose a label photo</strong>
+                <p>Supports mobile camera capture and image uploads.</p>
+              </label>
+
+              <div class="upload-actions">
+                <button id="extract-button" class="secondary-button" type="button">Extract text from image</button>
+                <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
+              </div>
+
+              <div id="ocr-status" class="ocr-status empty-state">
+                No image selected. You can still paste ingredients manually below.
+              </div>
+
+              <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
+            </div>
+
+            <label class="field">
+              <span>Ingredients</span>
+              <textarea
+                id="ingredients-text"
+                name="ingredientsText"
+                rows="8"
+                placeholder="Paste the full ingredients list here, or extract it from a label photo above"
+              ></textarea>
+            </label>
+
+            <div class="field">
+              <span>Preset sensitivities</span>
+              <div id="preset-grid" class="preset-grid"></div>
+            </div>
+
+            <div class="field">
+              <div class="field-row">
+                <span>Custom sensitivities</span>
+                <small>Use label + keywords to flag anything specific to your family.</small>
+              </div>
+
+              <div class="custom-builder">
+                <input id="custom-label" type="text" placeholder="Label: Jain, no garlic, sesame allergy" />
+                <input id="custom-terms" type="text" placeholder="Keywords: garlic, onion powder, sesame" />
+                <button id="add-custom" class="secondary-button" type="button">Add custom rule</button>
+              </div>
+
+              <div id="custom-list" class="custom-list empty-state">No custom sensitivities added yet.</div>
+            </div>
+
+            <div class="actions">
+              <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
+              <p class="helper-text">Results are a first-pass screen, not a religious or certification ruling.</p>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel results-panel">
+          <div class="section-heading">
+            <p class="section-kicker">Output</p>
+            <h2>Flagged ingredients</h2>
+          </div>
+
+          <div id="status-banner" class="status-banner">
+            Choose sensitivities, paste ingredients, and run an analysis.
+          </div>
+
+          <div id="results" class="results empty-results"></div>
+        </section>
+
+        <section class="panel history-panel">
+          <div class="section-heading">
+            <p class="section-kicker">Saved</p>
+            <h2>Recent analyses</h2>
+          </div>
+
+          <div id="history" class="history empty-state">No saved analyses yet.</div>
+        </section>
+      </main>
+    </div>
+
+    <template id="custom-item-template">
+      <div class="custom-item">
+        <div>
+          <strong class="custom-label"></strong>
+          <p class="custom-terms"></p>
+        </div>
+        <button class="remove-custom" type="button">Remove</button>
+      </div>
+    </template>
+
+    <template id="history-item-template">
+      <button class="history-item" type="button">
+        <span class="history-name"></span>
+        <span class="history-meta"></span>
+      </button>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

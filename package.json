@@ -1,0 +1,21 @@
+{
+  "name": "ingredients-screen",
+  "version": "1.0.0",
+  "description": "Ingredient screening app for dietary and religious sensitivities.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "ingredients",
+    "dietary",
+    "halal",
+    "kosher",
+    "vegetarian",
+    "vegan"
+  ],
+  "author": "",
+  "license": "MIT"
+}

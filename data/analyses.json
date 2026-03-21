@@ -1,0 +1,80 @@
+[
+  {
+    "id": "f7f6c398-038c-4181-8424-9880385e6682",
+    "createdAt": "2026-03-21T10:07:33.366Z",
+    "productName": "Woolies Cinnamon Donuts",
+    "ingredientsText": "Wheat Flour, Water, Vegetable Fats&Oils (Palm, Canola), Sugar, Cinnamon Sugar (7%) (Sugar, Oat Fibre, Spices (Including Cinnamon (2.5%)), Soy Flour, Raising Agents (500, 450, 341, 339), Whey Powder (Milk), Salt, Thickeners (412, 415 (Soy)), Emulsifier (322 (Soy)), Spices.",
+    "ingredients": [
+      "Wheat Flour",
+      "Water",
+      "Vegetable Fats&Oils (Palm",
+      "Canola)",
+      "Sugar",
+      "Cinnamon Sugar (7%) (Sugar",
+      "Oat Fibre",
+      "Spices (Including Cinnamon (2.5%))",
+      "Soy Flour",
+      "Raising Agents (500",
+      "450",
+      "341",
+      "339)",
+      "Whey Powder (Milk)",
+      "Salt",
+      "Thickeners (412",
+      "415 (Soy))",
+      "Emulsifier (322 (Soy))",
+      "Spices."
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [],
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "281cc47d-e6fa-4a6e-9ae9-4f3ef5d7b6fc",
+    "createdAt": "2026-03-21T10:12:20.556Z",
+    "productName": "Test Label",
+    "ingredientsText": "Potatoes, Emulsifier (E471)",
+    "ingredients": [
+      "Potatoes",
+      "Emulsifier (E471)"
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [],
+    "source": {
+      "type": "image_ocr",
+      "fileName": "label.jpg",
+      "extractionMethod": "tesseract.js"
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "caution",
+        "blockedFindings": [],
+        "cautionFindings": [
+          {
+            "ingredient": "Emulsifier (E471)",
+            "matchedTerm": "e471",
+            "reason": "Emulsifiers can be plant- or animal-derived."
+          }
+        ]
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  }
+]
