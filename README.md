@@ -12,7 +12,7 @@ Initial website for screening pasted ingredient lists against preset dietary and
 - Save every analysis to a local file-backed store at `data/analyses.json`.
 - Review recent submissions from the right-hand history panel.
 
-## Run it
+## Quick Start
 
 ```bash
 npm start
@@ -20,28 +20,30 @@ npm start
 
 Then open `http://127.0.0.1:3000`.
 
-## Enable OpenAI Parsing
+This works with no API key. In that mode, photo parsing uses browser OCR.
 
-Create a local `.env` file:
+## Optional OpenAI Setup
+
+If you want better parsing quality, copy the example env file and add your own key:
 
 ```bash
-OPENAI_API_KEY=your_key_here
+cp .env.example .env
+```
+
+Then edit `.env` and set:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.4-mini
 ```
 
-Then run:
+Then start the app normally:
 
 ```bash
 npm start
 ```
 
-You can still use shell env vars instead if you prefer:
-
-```bash
-export OPENAI_API_KEY=your_key_here
-export OPENAI_MODEL=gpt-5.4-mini
-npm start
-```
+You can also use shell env vars instead of `.env` if you prefer.
 
 With the key configured, the server exposes AI photo parsing and AI text cleanup. Without it, the app falls back to local browser OCR for photos.
 
@@ -61,10 +63,12 @@ npm test
 
 ## Notes
 
+- A fresh clone should run immediately with `npm start`; OpenAI is optional.
 - Persistence is implemented as a local JSON-backed store for the first step. This keeps the app dependency-free and easy to run.
 - Image OCR is handled in the browser with `tesseract.js`, and the camera flow is mobile-friendly through the file input `capture` mode.
 - OCR support now loads only when you actually choose a photo, so the initial page load stays local and lighter on phones.
 - OpenAI parsing is optional and server-side. The app checks whether `OPENAI_API_KEY` is present and falls back cleanly when it is not.
+- `.env.example` is committed for setup guidance. `.env` is ignored so local secrets do not get committed.
 - The `start:phone` script binds the server to `0.0.0.0` so the site can be opened from a phone on the same local network.
 - Users should still review the extracted text before saving, because OCR can misread curved packaging, glare, or stylized fonts.
 - The matching engine is rule-based. It is useful for fast screening, but it does not replace halal/kosher certification or brand-level ingredient verification.
