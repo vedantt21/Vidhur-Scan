@@ -42,13 +42,30 @@
     "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
   },
   {
-    "id": "281cc47d-e6fa-4a6e-9ae9-4f3ef5d7b6fc",
-    "createdAt": "2026-03-21T10:12:20.556Z",
-    "productName": "Test Label",
-    "ingredientsText": "Potatoes, Emulsifier (E471)",
+    "id": "6d7366eb-9962-4376-b114-a774202079d1",
+    "createdAt": "2026-03-21T10:17:11.293Z",
+    "productName": "",
+    "ingredientsText": "~, INGREDIENTS: Canola Oil [Antioxidant (304)], Water, Vinegar, Sugar, Egg Yolk, Thickeners (1442, 415), Ginger, Lemon, Salt, Chilli Puree [Food Acid (260)], Garlic Puree [Food Acid (260)], Food Acid, (330), Preservative (Potassium Sorbate), Chilli Powder, Natural Colour (160c), Antioxidant, (Rosemary Extract).",
     "ingredients": [
-      "Potatoes",
-      "Emulsifier (E471)"
+      "~",
+      "INGREDIENTS: Canola Oil [Antioxidant (304)]",
+      "Water",
+      "Vinegar",
+      "Sugar",
+      "Egg Yolk",
+      "Thickeners (1442, 415)",
+      "Ginger",
+      "Lemon",
+      "Salt",
+      "Chilli Puree [Food Acid (260)]",
+      "Garlic Puree [Food Acid (260)]",
+      "Food Acid",
+      "(330)",
+      "Preservative (Potassium Sorbate)",
+      "Chilli Powder",
+      "Natural Colour (160c)",
+      "Antioxidant",
+      "(Rosemary Extract)."
     ],
     "presets": [
       "vegetarian"
@@ -56,7 +73,7 @@
     "customSensitivities": [],
     "source": {
       "type": "image_ocr",
-      "fileName": "label.jpg",
+      "fileName": "Screenshot from 2026-03-21 21-16-41.png",
       "extractionMethod": "tesseract.js"
     },
     "results": [
@@ -64,15 +81,77 @@
         "id": "vegetarian",
         "label": "Vegetarian",
         "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
-        "status": "caution",
+        "status": "clear",
         "blockedFindings": [],
-        "cautionFindings": [
-          {
-            "ingredient": "Emulsifier (E471)",
-            "matchedTerm": "e471",
-            "reason": "Emulsifiers can be plant- or animal-derived."
-          }
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "aea81ccc-41ea-44f2-9129-ecf71f68450f",
+    "createdAt": "2026-03-21T10:17:29.749Z",
+    "productName": "",
+    "ingredientsText": "~, INGREDIENTS: Canola Oil [Antioxidant (304)], Water, Vinegar, Sugar, Egg Yolk, Thickeners (1442, 415), Ginger, Lemon, Salt, Chilli Puree [Food Acid (260)], Garlic Puree [Food Acid (260)], Food Acid, (330), Preservative (Potassium Sorbate), Chilli Powder, Natural Colour (160c), Antioxidant, (Rosemary Extract).",
+    "ingredients": [
+      "~",
+      "INGREDIENTS: Canola Oil [Antioxidant (304)]",
+      "Water",
+      "Vinegar",
+      "Sugar",
+      "Egg Yolk",
+      "Thickeners (1442, 415)",
+      "Ginger",
+      "Lemon",
+      "Salt",
+      "Chilli Puree [Food Acid (260)]",
+      "Garlic Puree [Food Acid (260)]",
+      "Food Acid",
+      "(330)",
+      "Preservative (Potassium Sorbate)",
+      "Chilli Powder",
+      "Natural Colour (160c)",
+      "Antioxidant",
+      "(Rosemary Extract)."
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "Egg",
+        "terms": [
+          "Egg"
         ]
+      }
+    ],
+    "source": {
+      "type": "image_ocr",
+      "fileName": "Screenshot from 2026-03-21 21-16-41.png",
+      "extractionMethod": "tesseract.js"
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:Egg",
+        "label": "Egg",
+        "summary": "Custom keyword match.",
+        "status": "not_allowed",
+        "blockedFindings": [
+          {
+            "ingredient": "Egg Yolk",
+            "matchedTerm": "Egg",
+            "reason": "Matches your custom sensitivity \"Egg\"."
+          }
+        ],
+        "cautionFindings": []
       }
     ],
     "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."

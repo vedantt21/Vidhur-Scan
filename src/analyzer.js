@@ -270,11 +270,38 @@ function splitIngredients(ingredientsText) {
   const merged = String(ingredientsText || "")
     .replace(/\r/g, "")
     .replace(/\n+/g, ", ");
+  const ingredients = [];
+  let current = "";
+  let nestingDepth = 0;
 
-  return merged
-    .split(/[;,]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+  for (const character of merged) {
+    if (character === "(") {
+      nestingDepth += 1;
+    } else if (character === ")" && nestingDepth > 0) {
+      nestingDepth -= 1;
+    }
+
+    if ((character === "," || character === ";") && nestingDepth === 0) {
+      const trimmed = current.trim();
+
+      if (trimmed) {
+        ingredients.push(trimmed);
+      }
+
+      current = "";
+      continue;
+    }
+
+    current += character;
+  }
+
+  const trailing = current.trim();
+
+  if (trailing) {
+    ingredients.push(trailing);
+  }
+
+  return ingredients;
 }
 
 function containsTerm(text, term) {

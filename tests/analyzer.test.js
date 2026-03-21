@@ -72,3 +72,16 @@ test("halal does not treat sugar alcohol as beverage alcohol", () => {
   assert.equal(halal.status, "caution");
   assert.equal(halal.blockedFindings.length, 0);
 });
+
+test("ingredient splitting keeps commas inside parentheses together", () => {
+  const analysis = analyzeIngredients({
+    ingredientsText: "Vegetable Oils (Palm, Canola), Salt, Emulsifier (471, 472)",
+    presets: ["vegetarian"]
+  });
+
+  assert.deepEqual(analysis.ingredients, [
+    "Vegetable Oils (Palm, Canola)",
+    "Salt",
+    "Emulsifier (471, 472)"
+  ]);
+});
