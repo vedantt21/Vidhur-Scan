@@ -265,5 +265,127 @@
       }
     ],
     "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "d7881f38-510d-4a6a-8572-dca0913b0058",
+    "createdAt": "2026-03-21T12:37:58.975Z",
+    "productName": "",
+    "ingredientsText": "Cheddar Cheese 60% (Made from Cow's Milk, Salt, Starter Culture, Microbial Rennet), Emulsifiers (E331, E339), Butter, Non Fat Milk Solids, Salt, Acidity Regulator (E270), Natural Salt Flavor, Preservatives (E200, E234), Color (E160b), Water Added, Minimum Fat DB 45%",
+    "ingredients": [
+      "Cheddar Cheese 60% (Made from Cow's Milk, Salt, Starter Culture, Microbial Rennet)",
+      "Emulsifiers (E331, E339)",
+      "Butter",
+      "Non Fat Milk Solids",
+      "Salt",
+      "Acidity Regulator (E270)",
+      "Natural Salt Flavor",
+      "Preservatives (E200, E234)",
+      "Color (E160b)",
+      "Water Added",
+      "Minimum Fat DB 45%"
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "egg",
+        "terms": [
+          "egg"
+        ]
+      }
+    ],
+    "source": {
+      "type": "manual_text",
+      "fileName": null,
+      "extractionMethod": null,
+      "model": null
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "not_allowed",
+        "blockedFindings": [
+          {
+            "ingredient": "Cheddar Cheese 60% (Made from Cow's Milk, Salt, Starter Culture, Microbial Rennet)",
+            "matchedTerm": "rennet",
+            "reason": "Traditional rennet is animal-derived."
+          }
+        ],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:egg",
+        "label": "egg",
+        "summary": "Custom keyword match.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "7a0137d0-1496-4b93-b377-472270bbffb0",
+    "createdAt": "2026-03-21T12:39:09.556Z",
+    "productName": "",
+    "ingredientsText": "Milk, water, Milk solids, emulsifier (331, 339, 341), butter (Milk), salt, food acid (270), starter culture (Milk), enzyme (animal rennet), preservative (200), natural colour (160b).",
+    "ingredients": [
+      "Milk",
+      "water",
+      "Milk solids",
+      "emulsifier (331, 339, 341)",
+      "butter (Milk)",
+      "salt",
+      "food acid (270)",
+      "starter culture (Milk)",
+      "enzyme (animal rennet)",
+      "preservative (200)",
+      "natural colour (160b)."
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "egg",
+        "terms": [
+          "egg"
+        ]
+      }
+    ],
+    "source": {
+      "type": "manual_text",
+      "fileName": null,
+      "extractionMethod": null,
+      "model": null
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "not_allowed",
+        "blockedFindings": [
+          {
+            "ingredient": "enzyme (animal rennet)",
+            "matchedTerm": "rennet",
+            "reason": "Traditional rennet is animal-derived."
+          }
+        ],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:egg",
+        "label": "egg",
+        "summary": "Custom keyword match.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
   }
 ]
