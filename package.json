@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "preview:phone": "HOST=0.0.0.0 node src/server.js",
+    "check:frontend": "node --check public/analysis-core.js && node --check public/app.js",
+    "ios:sync": "npx cap sync ios",
+    "ios:open": "npx cap open ios"
   },
   "keywords": [
     "ingredients",
@@ -17,5 +21,8 @@
     "vegan"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "nodemailer": "^6.10.1"
+  }
 }

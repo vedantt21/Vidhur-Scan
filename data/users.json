@@ -1,0 +1,19 @@
+[
+  {
+    "id": "dabbf003-a1e5-4aa9-b4ab-1f9af16a57f2",
+    "name": "Vedant Tyagi",
+    "email": "vedanttyagi202@gmail.com",
+    "preferences": {
+      "presets": [
+        "vegetarian"
+      ]
+    },
+    "passwordSalt": "ad639847697b049064c1d9ab9d2a7851",
+    "passwordHash": "a431201a1a981d6b55eb36844ffd52ddfb92b5732d306d26e0ab0de071660b3ddd074e06651acd4bc525f24fb3f43ac5fe648796c2b5bca90b1a54d629d977eb",
+    "emailVerifiedAt": null,
+    "verificationTokenHash": "8ba4c856b8170de718993cef7ee40429819861de2a473cb6f68b2a5cf2ef6ebc",
+    "verificationExpiresAt": "2026-03-24T05:11:15.928Z",
+    "createdAt": "2026-03-23T05:10:10.051Z",
+    "updatedAt": "2026-03-23T05:11:15.928Z"
+  }
+]

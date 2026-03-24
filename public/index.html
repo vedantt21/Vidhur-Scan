@@ -3,128 +3,241 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8f1e6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Ingredient Screen" />
+    <meta name="format-detection" content="telephone=no" />
     <title>Ingredient Screen</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">First Step</p>
-          <h1>Paste ingredients or scan a label. See what needs a second look.</h1>
+    <div class="app-frame">
+      <section id="auth-screen" class="auth-screen">
+        <header class="auth-hero">
+          <p class="eyebrow">Ingredient Screen</p>
+          <h1>Build your profile once. Scan ingredients with your defaults already loaded.</h1>
           <p class="hero-text">
-            Built for fast screening across vegetarian, vegan, halal, kosher, and custom sensitivities.
-            Every check is saved so repeated products become easier to review later.
+            Create an account, choose what matters to you, and keep every past scan tied to your profile.
           </p>
-        </div>
+        </header>
 
-        <aside class="hero-panel">
-          <p class="hero-panel-label">What this version does</p>
-          <ul class="hero-points">
-            <li>Paste ingredients or upload a label photo from your phone</li>
-            <li>Apply preset dietary and religious screens</li>
-            <li>Add your own keyword-based custom sensitivities</li>
-            <li>Save analyses in a persistent local store</li>
-          </ul>
-        </aside>
-      </header>
-
-      <main class="layout">
-        <section class="panel input-panel">
-          <div class="section-heading">
-            <p class="section-kicker">Input</p>
-            <h2>Screen a product</h2>
+        <section class="auth-card">
+          <div class="auth-switcher">
+            <button id="show-register-button" class="auth-switch active" type="button">Create account</button>
+            <button id="show-login-button" class="auth-switch" type="button">Log in</button>
           </div>
 
-          <form id="analysis-form" class="analysis-form">
+          <div id="auth-status" class="info-banner">Create an account to save your profile and previous scans.</div>
+          <div id="auth-preview" class="info-banner hidden"></div>
+
+          <form id="register-form" class="stack-form">
             <label class="field">
-              <span>Product name</span>
-              <input id="product-name" name="productName" type="text" placeholder="Optional: Masala chips" />
+              <span>Name</span>
+              <input id="register-name" type="text" placeholder="Your name" autocomplete="name" />
+            </label>
+
+            <label class="field">
+              <span>Email</span>
+              <input id="register-email" type="email" placeholder="you@example.com" autocomplete="email" />
+            </label>
+
+            <label class="field">
+              <span>Password</span>
+              <input id="register-password" type="password" placeholder="At least 6 characters" autocomplete="new-password" />
             </label>
 
             <div class="field">
               <div class="field-row">
-                <span>Label photo</span>
-                <small>Upload an image or use your phone camera, then review the extracted text.</small>
+                <span>Default sensitivities</span>
+                <small>These will be preselected every time you start a new scan.</small>
               </div>
-
-              <label class="upload-box" for="image-input">
-                <input id="image-input" type="file" accept="image/*" capture="environment" />
-                <strong>Choose a label photo</strong>
-                <p>Supports mobile camera capture and image uploads.</p>
-              </label>
-
-              <div class="upload-actions">
-                <button id="extract-button" class="secondary-button" type="button">Extract text from image</button>
-                <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
-              </div>
-
-              <div id="ocr-status" class="ocr-status empty-state">
-                No image selected. You can still paste ingredients manually below.
-              </div>
-
-              <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
+              <div id="register-preset-grid" class="preset-grid"></div>
             </div>
 
+            <button id="register-submit" class="primary-button" type="submit">Create account</button>
+          </form>
+
+          <form id="login-form" class="stack-form hidden">
             <label class="field">
-              <span>Ingredients</span>
-              <textarea
-                id="ingredients-text"
-                name="ingredientsText"
-                rows="8"
-                placeholder="Paste the full ingredients list here, or extract it from a label photo above"
-              ></textarea>
+              <span>Email</span>
+              <input id="login-email" type="email" placeholder="you@example.com" autocomplete="email" />
             </label>
 
-            <div class="field">
-              <span>Preset sensitivities</span>
-              <div id="preset-grid" class="preset-grid"></div>
-            </div>
+            <label class="field">
+              <span>Password</span>
+              <input id="login-password" type="password" placeholder="Your password" autocomplete="current-password" />
+            </label>
 
-            <div class="field">
-              <div class="field-row">
-                <span>Custom sensitivities</span>
-                <small>Use label + keywords to flag anything specific to your family.</small>
-              </div>
-
-              <div class="custom-builder">
-                <input id="custom-label" type="text" placeholder="Label: Jain, no garlic, sesame allergy" />
-                <input id="custom-terms" type="text" placeholder="Keywords: garlic, onion powder, sesame" />
-                <button id="add-custom" class="secondary-button" type="button">Add custom rule</button>
-              </div>
-
-              <div id="custom-list" class="custom-list empty-state">No custom sensitivities added yet.</div>
-            </div>
-
-            <div class="actions">
-              <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
-              <p class="helper-text">Results are a first-pass screen, not a religious or certification ruling.</p>
-            </div>
+            <button id="login-submit" class="primary-button" type="submit">Log in</button>
+            <button id="resend-verification-button" class="secondary-button" type="button">Resend verification email</button>
           </form>
         </section>
+      </section>
 
-        <section class="panel results-panel">
-          <div class="section-heading">
-            <p class="section-kicker">Output</p>
-            <h2>Flagged ingredients</h2>
+      <section id="app-screen" class="app-screen hidden">
+        <header class="app-header">
+          <div>
+            <p id="header-kicker" class="eyebrow">Ready to scan</p>
+            <h2 id="header-title">Scan</h2>
+            <p id="header-subtitle" class="header-subtitle">Use your saved defaults or adjust them for this product.</p>
           </div>
+          <button id="new-scan-button" class="secondary-button" type="button">New scan</button>
+        </header>
 
-          <div id="status-banner" class="status-banner">
-            Choose sensitivities, paste ingredients, and run an analysis.
-          </div>
+        <main class="app-content">
+          <section id="history-panel" class="tab-panel hidden" data-tab-panel="history">
+            <article class="panel-card">
+              <div class="section-heading">
+                <p class="section-kicker">Saved</p>
+                <h3>Previous scans</h3>
+              </div>
 
-          <div id="results" class="results empty-results"></div>
-        </section>
+              <div id="history-status" class="info-banner">Tap any saved scan to reload it into the scanner.</div>
+              <div id="history" class="history empty-state">No saved analyses yet.</div>
+            </article>
+          </section>
 
-        <section class="panel history-panel">
-          <div class="section-heading">
-            <p class="section-kicker">Saved</p>
-            <h2>Recent analyses</h2>
-          </div>
+          <section id="scan-panel" class="tab-panel" data-tab-panel="scan">
+            <article class="panel-card">
+              <div class="section-heading">
+                <p class="section-kicker">Scan</p>
+                <h3>Check a product</h3>
+              </div>
 
-          <div id="history" class="history empty-state">No saved analyses yet.</div>
-        </section>
-      </main>
+              <p id="scan-defaults-note" class="helper-text">
+                Your saved sensitivities will be preselected when you start a new scan.
+              </p>
+
+              <form id="analysis-form" class="stack-form">
+                <label class="field">
+                  <span>Product name</span>
+                  <input id="product-name" name="productName" type="text" placeholder="Optional: Masala chips" />
+                </label>
+
+                <div class="field">
+                  <div class="field-row">
+                    <span>Label photo</span>
+                    <small>Upload a label image or use your phone camera, then review the extracted text.</small>
+                  </div>
+
+                  <label class="upload-box" for="image-input">
+                    <input id="image-input" type="file" accept="image/*" capture="environment" />
+                    <strong>Choose a label photo</strong>
+                    <p>Works with mobile camera capture and gallery uploads.</p>
+                  </label>
+
+                  <div class="upload-actions">
+                    <button id="extract-button" class="secondary-button" type="button">Extract text</button>
+                    <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
+                  </div>
+
+                  <div id="ocr-status" class="ocr-status empty-state">
+                    No image selected. You can still paste ingredients manually below.
+                  </div>
+
+                  <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
+                </div>
+
+                <label class="field">
+                  <span>Ingredients</span>
+                  <textarea
+                    id="ingredients-text"
+                    name="ingredientsText"
+                    rows="8"
+                    placeholder="Paste the ingredient list here, or extract it from a label photo above"
+                  ></textarea>
+                </label>
+
+                <div class="field">
+                  <div class="field-row">
+                    <span>Sensitivities for this scan</span>
+                    <small>Your profile defaults are already checked.</small>
+                  </div>
+                  <div id="scan-preset-grid" class="preset-grid"></div>
+                </div>
+
+                <div class="field">
+                  <div class="field-row">
+                    <span>Custom sensitivities</span>
+                    <small>Add product-specific watch terms for just this scan.</small>
+                  </div>
+
+                  <div class="custom-builder">
+                    <input id="custom-label" type="text" placeholder="Label: Jain, no garlic, sesame allergy" />
+                    <input id="custom-terms" type="text" placeholder="Keywords: garlic, onion powder, sesame" />
+                    <button id="add-custom" class="secondary-button" type="button">Add custom rule</button>
+                  </div>
+
+                  <div id="custom-list" class="custom-list empty-state">No custom sensitivities added yet.</div>
+                </div>
+
+                <div class="actions">
+                  <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
+                  <p class="helper-text">Results are a first-pass screen, not a religious or certification ruling.</p>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel-card">
+              <div class="section-heading">
+                <p class="section-kicker">Results</p>
+                <h3>Flagged ingredients</h3>
+              </div>
+
+              <div id="status-banner" class="status-banner">
+                Choose sensitivities, paste ingredients, and run an analysis.
+              </div>
+
+              <div id="results" class="results empty-results"></div>
+            </article>
+          </section>
+
+          <section id="profile-panel" class="tab-panel hidden" data-tab-panel="profile">
+            <article class="panel-card">
+              <div class="section-heading">
+                <p class="section-kicker">Profile</p>
+                <h3>Defaults and account</h3>
+              </div>
+
+              <div id="profile-status" class="info-banner">Update your default screening preferences here.</div>
+
+              <form id="profile-form" class="stack-form">
+                <label class="field">
+                  <span>Name</span>
+                  <input id="profile-name" type="text" autocomplete="name" />
+                </label>
+
+                <label class="field">
+                  <span>Email</span>
+                  <input id="profile-email" type="email" disabled />
+                </label>
+
+                <div class="field">
+                  <div class="field-row">
+                    <span>Default sensitivities</span>
+                    <small>These are automatically applied when you start a new scan.</small>
+                  </div>
+                  <div id="profile-preset-grid" class="preset-grid"></div>
+                </div>
+
+                <div class="actions">
+                  <button id="save-profile-button" class="primary-button" type="submit">Save profile</button>
+                  <button id="logout-button" class="secondary-button" type="button">Log out</button>
+                </div>
+              </form>
+            </article>
+          </section>
+        </main>
+
+        <nav class="bottom-nav" aria-label="Primary">
+          <button class="nav-button" data-tab="history" type="button">History</button>
+          <button class="nav-button active" data-tab="scan" type="button">Scan</button>
+          <button class="nav-button" data-tab="profile" type="button">Profile</button>
+        </nav>
+      </section>
     </div>
 
     <template id="custom-item-template">
@@ -144,6 +257,7 @@
       </button>
     </template>
 
+    <script src="/analysis-core.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script src="/app.js" defer></script>
   </body>

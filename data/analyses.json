@@ -155,5 +155,117 @@
       }
     ],
     "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "ff7d8c2d-6ca8-4689-b05f-122f24603909",
+    "createdAt": "2026-03-21T12:40:59.055Z",
+    "productName": "",
+    "ingredientsText": "Milk, water, Milk solids, emulsifier (331, 339, 341), butter (Milk), salt, food acid (270), starter culture (Milk), enzyme (animal rennet), preservative (200), natural colour (160b).",
+    "ingredients": [
+      "Milk",
+      "water",
+      "Milk solids",
+      "emulsifier (331, 339, 341)",
+      "butter (Milk)",
+      "salt",
+      "food acid (270)",
+      "starter culture (Milk)",
+      "enzyme (animal rennet)",
+      "preservative (200)",
+      "natural colour (160b)."
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "egg",
+        "terms": [
+          "egg"
+        ]
+      }
+    ],
+    "source": {
+      "type": "manual_text",
+      "fileName": null,
+      "extractionMethod": null
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "not_allowed",
+        "blockedFindings": [
+          {
+            "ingredient": "enzyme (animal rennet)",
+            "matchedTerm": "rennet",
+            "reason": "Traditional rennet is animal-derived."
+          }
+        ],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:egg",
+        "label": "egg",
+        "summary": "Custom keyword match.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
+  },
+  {
+    "id": "7b8c816d-cd99-4d7e-a037-6c200380623e",
+    "createdAt": "2026-03-21T12:41:41.431Z",
+    "productName": "",
+    "ingredientsText": "Ingredients Glucose Syrup, Cane Sugar, Thickener (Dextrin Roasted Starch, Acid Treated Starch Or St arch Acetate)( Wheat Or Corn), Gelatine, Food Aci ds (Citric, Lactic), Invert Syrup, Flavours, Colou rs (Carminic Acid, Vegetable Carbon, Turmeric, Pap rika Oleoresin, Copper Chlorophyllin). Conta ins Wheat, Gluten. May Contain Milk.",
+    "ingredients": [
+      "Ingredients Glucose Syrup",
+      "Cane Sugar",
+      "Thickener (Dextrin Roasted Starch, Acid Treated Starch Or St arch Acetate)( Wheat Or Corn)",
+      "Gelatine",
+      "Food Aci ds (Citric, Lactic)",
+      "Invert Syrup",
+      "Flavours",
+      "Colou rs (Carminic Acid, Vegetable Carbon, Turmeric, Pap rika Oleoresin, Copper Chlorophyllin). Conta ins Wheat",
+      "Gluten. May Contain Milk."
+    ],
+    "presets": [
+      "vegetarian"
+    ],
+    "customSensitivities": [
+      {
+        "label": "egg",
+        "terms": [
+          "egg"
+        ]
+      }
+    ],
+    "source": {
+      "type": "manual_text",
+      "fileName": null,
+      "extractionMethod": null
+    },
+    "results": [
+      {
+        "id": "vegetarian",
+        "label": "Vegetarian",
+        "summary": "Flags meat, fish, insect-derived colorings, and animal-derived additives.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      },
+      {
+        "id": "custom:egg",
+        "label": "egg",
+        "summary": "Custom keyword match.",
+        "status": "clear",
+        "blockedFindings": [],
+        "cautionFindings": []
+      }
+    ],
+    "disclaimer": "This is a screening tool, not a certification service. Ambiguous additives still need brand or certifier verification."
   }
 ]

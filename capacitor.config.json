@@ -1,0 +1,9 @@
+{
+  "appId": "com.ingredientscreen.app",
+  "appName": "Ingredient Screen",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "iosScheme": "app"
+  }
+}
