@@ -37,9 +37,25 @@ function sanitizePreferences(preferences) {
   const presetIds = Array.isArray(preferences && preferences.presets)
     ? preferences.presets.filter((id) => Object.prototype.hasOwnProperty.call(PRESET_SENSITIVITIES, id))
     : [];
+  const customSensitivities = Array.isArray(preferences && preferences.customSensitivities)
+    ? preferences.customSensitivities
+        .map((entry) => {
+          const label = String(entry && entry.label ? entry.label : "").trim();
+          const terms = Array.isArray(entry && entry.terms)
+            ? entry.terms.map((term) => String(term || "").trim()).filter(Boolean)
+            : [];
+
+          return {
+            label,
+            terms
+          };
+        })
+        .filter((entry) => entry.label && entry.terms.length > 0)
+    : [];
 
   return {
-    presets: [...new Set(presetIds)]
+    presets: [...new Set(presetIds)],
+    customSensitivities
   };
 }
 

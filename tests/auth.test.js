@@ -40,10 +40,16 @@ test("hashPassword and verifyPassword accept the original password", () => {
 test("sanitizePreferences keeps only supported preset ids and removes duplicates", () => {
   assert.deepEqual(
     sanitizePreferences({
-      presets: ["vegan", "invalid", "vegan", "halal"]
+      presets: ["vegan", "invalid", "vegan", "halal"],
+      customSensitivities: [
+        { label: "No garlic", terms: ["garlic", " onion "] },
+        { label: "", terms: ["bad"] },
+        { label: "Empty", terms: [] }
+      ]
     }),
     {
-      presets: ["vegan", "halal"]
+      presets: ["vegan", "halal"],
+      customSensitivities: [{ label: "No garlic", terms: ["garlic", "onion"] }]
     }
   );
 });

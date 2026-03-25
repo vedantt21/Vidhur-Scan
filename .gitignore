@@ -1,3 +1,9 @@
 node_modules/
 .env
 .env.env
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+android/captures/
+android/local.properties

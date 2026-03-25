@@ -86,161 +86,143 @@
       <section id="app-screen" class="app-screen hidden">
         <header class="app-header">
           <div>
-            <p id="header-kicker" class="eyebrow">Ready to scan</p>
-            <h2 id="header-title">Scan</h2>
-            <p id="header-subtitle" class="header-subtitle">Use your saved defaults or adjust them for this product.</p>
+            <p id="header-kicker" class="eyebrow">Dashboard</p>
+            <h2 id="header-title">Hello. What are you scanning today?</h2>
+            <p id="header-subtitle" class="header-subtitle">Current checks are below. Tap the camera button to scan.</p>
           </div>
-          <button id="new-scan-button" class="secondary-button" type="button">New scan</button>
+          <button id="new-scan-button" class="secondary-button" type="button">Dashboard</button>
         </header>
 
         <main class="app-content">
           <section id="history-panel" class="tab-panel hidden" data-tab-panel="history">
             <article class="panel-card">
               <div class="section-heading">
-                <p class="section-kicker">Saved</p>
-                <h3>Previous scans</h3>
+                <p class="section-kicker">History</p>
+                <h3>Saved scans</h3>
               </div>
 
-              <div id="history-status" class="info-banner">Tap any saved scan to reload it into the scanner.</div>
+              <div id="status-banner" class="status-banner">
+                Scan a product and the flagged results will appear here.
+              </div>
+
+              <div id="results" class="results empty-results"></div>
+
+              <div id="history-status" class="info-banner">Tap any saved scan to review what was flagged.</div>
               <div id="history" class="history empty-state">No saved analyses yet.</div>
             </article>
           </section>
 
           <section id="scan-panel" class="tab-panel" data-tab-panel="scan">
             <article class="panel-card">
-              <div class="section-heading">
-                <p class="section-kicker">Scan</p>
-                <h3>Check a product</h3>
-              </div>
+              <section class="home-focus-card">
+                <div class="section-heading">
+                  <p class="section-kicker">Current checking</p>
+                  <h3>Active sensitivity set</h3>
+                </div>
+                <p class="home-support">Barcode scanning starts from the camera button in the center of the tab bar.</p>
 
-              <p id="scan-defaults-note" class="helper-text">
-                Your saved sensitivities will be preselected when you start a new scan.
-              </p>
+                <div class="field-row">
+                  <span>Current sensitivity</span>
+                  <small id="scan-defaults-note">Loaded from your profile.</small>
+                </div>
+                <div id="current-checking" class="current-checking empty-state">No checks configured yet.</div>
+              </section>
 
-              <form id="analysis-form" class="stack-form">
-                <section class="lookup-card">
-                  <div class="section-heading compact-heading">
-                    <p class="section-kicker">Primary</p>
-                    <h3>Barcode lookup</h3>
-                  </div>
+              <form id="analysis-form" class="stack-form compact-form">
+                <details class="fallback-tools">
+                  <summary>Use backup options</summary>
 
-                  <p class="helper-text">
-                    Scan or enter a barcode first. Ingredient text stays available as backup when the barcode product
-                    cannot be resolved or lacks enough dietary detail.
-                  </p>
+                  <section class="lookup-card fallback-card">
+                    <div class="section-heading compact-heading">
+                      <p class="section-kicker">Backup</p>
+                      <h3>Manual barcode or ingredient text</h3>
+                    </div>
 
-                  <div class="barcode-grid">
+                    <div class="backup-status-stack">
+                      <div id="barcode-status" class="ocr-status empty-state">
+                        No barcode lookup yet. Scan a barcode or use the manual backup tools here.
+                      </div>
+
+                      <div id="barcode-result" class="barcode-result empty-state">No barcode product loaded.</div>
+                    </div>
+
+                    <div class="barcode-grid compact-barcode-grid">
+                      <label class="field">
+                        <span>Barcode</span>
+                        <input
+                          id="barcode-input"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          placeholder="Type a UPC / EAN / GTIN"
+                        />
+                      </label>
+
+                      <div class="barcode-actions compact-actions">
+                        <button id="lookup-barcode-button" class="primary-button" type="button">Lookup</button>
+                        <label class="secondary-button barcode-file-button" for="barcode-image-input">Camera</label>
+                        <input
+                          id="barcode-image-input"
+                          class="visually-hidden"
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                        />
+                        <button id="clear-barcode-button" class="secondary-button" type="button">Clear</button>
+                      </div>
+                    </div>
+
                     <label class="field">
-                      <span>Barcode</span>
+                      <span>Product name</span>
                       <input
-                        id="barcode-input"
+                        id="product-name"
+                        name="productName"
                         type="text"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        placeholder="Scan or type UPC / EAN / GTIN"
+                        placeholder="Optional name for history"
                       />
                     </label>
 
-                    <div class="barcode-actions">
-                      <button id="lookup-barcode-button" class="primary-button" type="button">Lookup barcode</button>
-                      <label class="secondary-button barcode-file-button" for="barcode-image-input">Scan from camera</label>
-                      <input id="barcode-image-input" class="visually-hidden" type="file" accept="image/*" capture="environment" />
-                      <button id="clear-barcode-button" class="secondary-button" type="button">Clear barcode</button>
+                    <div class="field">
+                      <div class="field-row">
+                        <span>Label photo</span>
+                        <small>Use OCR only if the barcode path does not cover the item.</small>
+                      </div>
+
+                      <label class="upload-box" for="image-input">
+                        <input id="image-input" type="file" accept="image/*" capture="environment" />
+                        <strong>Choose a label photo</strong>
+                        <p>Works with mobile camera capture and gallery uploads.</p>
+                      </label>
+
+                      <div class="upload-actions">
+                        <button id="extract-button" class="secondary-button" type="button">Extract text</button>
+                        <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
+                      </div>
+
+                      <div id="ocr-status" class="ocr-status empty-state">
+                        No image selected. Barcode lookup is the primary flow, but you can still use OCR or paste text below.
+                      </div>
+
+                      <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
                     </div>
-                  </div>
 
-                  <div id="barcode-status" class="ocr-status empty-state">
-                    No barcode lookup yet. Scan a barcode or type the number to start there.
-                  </div>
+                    <label class="field">
+                      <span>Ingredients fallback</span>
+                      <textarea
+                        id="ingredients-text"
+                        name="ingredientsText"
+                        rows="7"
+                        placeholder="Paste ingredients here only if barcode lookup cannot fully classify the product"
+                      ></textarea>
+                    </label>
 
-                  <div id="barcode-result" class="barcode-result empty-state">No barcode product loaded.</div>
-                </section>
-
-                <label class="field">
-                  <span>Product name</span>
-                  <input
-                    id="product-name"
-                    name="productName"
-                    type="text"
-                    placeholder="Optional label for history if you want your own product name"
-                  />
-                </label>
-
-                <div class="field">
-                  <div class="field-row">
-                    <span>Ingredient text backup</span>
-                    <small>Use OCR or paste ingredients only when barcode lookup does not fully cover the product.</small>
-                  </div>
-
-                  <label class="upload-box" for="image-input">
-                    <input id="image-input" type="file" accept="image/*" capture="environment" />
-                    <strong>Choose a label photo</strong>
-                    <p>Works with mobile camera capture and gallery uploads.</p>
-                  </label>
-
-                  <div class="upload-actions">
-                    <button id="extract-button" class="secondary-button" type="button">Extract text</button>
-                    <button id="clear-image-button" class="secondary-button" type="button">Clear image</button>
-                  </div>
-
-                  <div id="ocr-status" class="ocr-status empty-state">
-                    No image selected. Barcode lookup is the primary flow, but you can still use OCR or paste text below.
-                  </div>
-
-                  <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
-                </div>
-
-                <label class="field">
-                  <span>Ingredients fallback</span>
-                  <textarea
-                    id="ingredients-text"
-                    name="ingredientsText"
-                    rows="8"
-                    placeholder="Paste ingredients here only if barcode lookup cannot fully classify the product"
-                  ></textarea>
-                </label>
-
-                <div class="field">
-                  <div class="field-row">
-                    <span>Sensitivities for this scan</span>
-                    <small>Your profile defaults are already checked.</small>
-                  </div>
-                  <div id="scan-preset-grid" class="preset-grid"></div>
-                </div>
-
-                <div class="field">
-                  <div class="field-row">
-                    <span>Custom sensitivities</span>
-                    <small>Add product-specific watch terms for just this scan.</small>
-                  </div>
-
-                  <div class="custom-builder">
-                    <input id="custom-label" type="text" placeholder="Label: Jain, no garlic, sesame allergy" />
-                    <input id="custom-terms" type="text" placeholder="Keywords: garlic, onion powder, sesame" />
-                    <button id="add-custom" class="secondary-button" type="button">Add custom rule</button>
-                  </div>
-
-                  <div id="custom-list" class="custom-list empty-state">No custom sensitivities added yet.</div>
-                </div>
-
-                <div class="actions">
-                  <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
-                  <p class="helper-text">Barcode is primary. OCR and pasted text remain backup input only.</p>
-                </div>
+                    <div class="actions">
+                      <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
+                      <p class="helper-text">This uses the checks saved in your profile.</p>
+                    </div>
+                  </section>
+                </details>
               </form>
-            </article>
-
-            <article class="panel-card">
-              <div class="section-heading">
-                <p class="section-kicker">Results</p>
-                <h3>Flagged ingredients</h3>
-              </div>
-
-              <div id="status-banner" class="status-banner">
-                Choose sensitivities, paste ingredients, and run an analysis.
-              </div>
-
-              <div id="results" class="results empty-results"></div>
             </article>
           </section>
 
@@ -272,6 +254,21 @@
                   <div id="profile-preset-grid" class="preset-grid"></div>
                 </div>
 
+                <div class="field">
+                  <div class="field-row">
+                    <span>Custom checks</span>
+                    <small>These will be included every time you scan.</small>
+                  </div>
+
+                  <div class="custom-builder">
+                    <input id="custom-label" type="text" placeholder="Label: Jain, sesame, no garlic" />
+                    <input id="custom-terms" type="text" placeholder="Keywords: garlic, onion powder, sesame" />
+                    <button id="add-custom" class="secondary-button" type="button">Add custom rule</button>
+                  </div>
+
+                  <div id="custom-list" class="custom-list empty-state">No custom checks added yet.</div>
+                </div>
+
                 <div class="actions">
                   <button id="save-profile-button" class="primary-button" type="submit">Save profile</button>
                   <button id="logout-button" class="secondary-button" type="button">Log out</button>
@@ -282,9 +279,26 @@
         </main>
 
         <nav class="bottom-nav" aria-label="Primary">
-          <button class="nav-button" data-tab="history" type="button">History</button>
-          <button class="nav-button active" data-tab="scan" type="button">Scan</button>
-          <button class="nav-button" data-tab="profile" type="button">Profile</button>
+          <button class="nav-button" data-tab="history" type="button" aria-label="History">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 4.5h7l3 3V19a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z" />
+              <path d="M14 4.5V8h3.5" />
+              <path d="M8.5 12h7" />
+              <path d="M8.5 15.5h5" />
+            </svg>
+          </button>
+          <button class="nav-button nav-button-camera active" data-tab="scan" type="button" aria-label="Scan barcode">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 8h2l1.5-2h7L17.5 8H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
+          </button>
+          <button class="nav-button" data-tab="profile" type="button" aria-label="Profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 19a7 7 0 0 1 14 0" />
+            </svg>
+          </button>
         </nav>
       </section>
     </div>
@@ -301,8 +315,11 @@
 
     <template id="history-item-template">
       <button class="history-item" type="button">
-        <span class="history-name"></span>
-        <span class="history-meta"></span>
+        <span class="history-copy">
+          <span class="history-name"></span>
+          <span class="history-meta"></span>
+        </span>
+        <span class="history-summary"></span>
       </button>
     </template>
 

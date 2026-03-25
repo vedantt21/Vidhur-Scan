@@ -47,28 +47,74 @@ SMTP_PASS=your_smtp_password
 MAIL_FROM="Ingredient Screen <no-reply@example.com>"
 ```
 
-## Android path
+## Run in Android Studio
 
-The repo is prepared for a Capacitor Android shell, but the Android app should use a hosted backend for auth, SQLite-backed history, and server-side FatSecret requests.
+Use the Android shell only with a reachable Node backend. Barcode lookup, Gmail auth flow, saved history, and API tracking all depend on the server.
 
-1. Host this Node app somewhere reachable from the Android device.
-2. Edit `public/app-config.js` before the Android build:
+### Prerequisites
+
+- Android Studio installed with an emulator image
+- Node dependencies installed with `npm install`
+- `.env` created from `.env.example`
+- FatSecret secret filled in locally
+
+### Local emulator workflow
+
+1. Start the backend so the emulator can reach it:
+
+```bash
+npm run preview:phone
+```
+
+That runs the server on `0.0.0.0:3000`.
+
+2. Edit `public/app-config.js` for the Android emulator:
 
 ```js
 window.IngredientScreenConfig = {
-  apiBaseUrl: "https://your-hosted-api.example.com",
+  apiBaseUrl: "http://10.0.2.2:3000",
   useNativeLocalStorage: false
 };
 ```
 
-3. Run `npm install` so the declared Capacitor dev dependencies are available locally.
-4. Run:
+`10.0.2.2` is the Android emulator alias for your host machine. If you use a real Android phone on the same Wi-Fi, replace it with your computer's LAN IP such as `http://192.168.1.50:3000`.
+
+3. Generate the Android project once:
 
 ```bash
 npm run android:add
+```
+
+4. Sync web assets and Capacitor config into Android every time you change the app:
+
+```bash
 npm run android:sync
+```
+
+5. Open the Android project in Android Studio:
+
+```bash
 npm run android:open
 ```
+
+6. In Android Studio:
+
+- Wait for Gradle sync to finish.
+- Select an emulator or connected device.
+- Press `Run`.
+
+### Important files for Android Studio
+
+- `public/app-config.js`
+  Set `apiBaseUrl` and `useNativeLocalStorage: false` for Android builds that should use the backend.
+- `capacitor.config.json`
+  `server.cleartext` is enabled so the emulator can call a local `http://10.0.2.2:3000` backend during development.
+- `.env`
+  Keep your FatSecret secret here on the server side only.
+
+### Production note
+
+`server.cleartext` is meant for local Android development over HTTP. When you move to a real hosted HTTPS backend, point `public/app-config.js` at the HTTPS URL and change `capacitor.config.json` `server.cleartext` back to `false`.
 
 If `apiBaseUrl` is left blank, native builds fall back to on-device localStorage for auth/history and will not be able to use the FatSecret barcode API because those credentials must stay on the server.
 

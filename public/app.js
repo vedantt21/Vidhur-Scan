@@ -16,6 +16,7 @@ const state = {
   imagePreviewUrl: "",
   lastExtractionSource: null,
   activeBarcodeLookup: null,
+  selectedHistoryAnalysisId: "",
   runtimeConfig: {
     auth: {
       allowedEmailDomain: "gmail.com"
@@ -35,13 +36,15 @@ const registerForm = document.querySelector("#register-form");
 const loginForm = document.querySelector("#login-form");
 const resendVerificationButton = document.querySelector("#resend-verification-button");
 const registerPresetGrid = document.querySelector("#register-preset-grid");
-const scanPresetGrid = document.querySelector("#scan-preset-grid");
 const profilePresetGrid = document.querySelector("#profile-preset-grid");
 const showRegisterButton = document.querySelector("#show-register-button");
 const showLoginButton = document.querySelector("#show-login-button");
+const appContent = document.querySelector(".app-content");
 const headerKicker = document.querySelector("#header-kicker");
 const headerTitle = document.querySelector("#header-title");
 const headerSubtitle = document.querySelector("#header-subtitle");
+const currentCheckingContainer = document.querySelector("#current-checking");
+const fallbackTools = document.querySelector(".fallback-tools");
 const newScanButton = document.querySelector("#new-scan-button");
 const scanDefaultsNote = document.querySelector("#scan-defaults-note");
 const historyStatus = document.querySelector("#history-status");
@@ -75,6 +78,17 @@ const extractButton = document.querySelector("#extract-button");
 const clearImageButton = document.querySelector("#clear-image-button");
 const imagePreview = document.querySelector("#image-preview");
 const ocrStatus = document.querySelector("#ocr-status");
+const TAB_ORDER = ["history", "scan", "profile"];
+const TAB_SWITCH_ANIMATION = {
+  duration: 280,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)"
+};
+const TAB_SWIPE_THRESHOLD = 72;
+const tabSwipeState = {
+  active: false,
+  startX: 0,
+  startY: 0
+};
 
 function isNativeApp() {
   const params = new URLSearchParams(window.location.search);
@@ -198,9 +212,25 @@ function sanitizePreferences(preferences) {
   const presetIds = Array.isArray(preferences && preferences.presets)
     ? preferences.presets.filter((id) => allowed.has(id))
     : [];
+  const customSensitivities = Array.isArray(preferences && preferences.customSensitivities)
+    ? preferences.customSensitivities
+        .map((entry) => {
+          const label = String(entry && entry.label ? entry.label : "").trim();
+          const terms = Array.isArray(entry && entry.terms)
+            ? entry.terms.map((term) => String(term || "").trim()).filter(Boolean)
+            : [];
+
+          return {
+            label,
+            terms
+          };
+        })
+        .filter((entry) => entry.label && entry.terms.length > 0)
+    : [];
 
   return {
-    presets: [...new Set(presetIds)]
+    presets: [...new Set(presetIds)],
+    customSensitivities
   };
 }
 
@@ -793,6 +823,15 @@ function setInfoBanner(element, message) {
   element.textContent = message;
 }
 
+function getDashboardGreeting() {
+  if (!state.currentUser) {
+    return "Hello. What are you scanning today?";
+  }
+
+  const name = String(state.currentUser.name || "").trim().split(/\s+/)[0] || "there";
+  return `Hello ${name} What are you scanning today?`;
+}
+
 function setAuthPreview(previewUrl, label = "Open verification preview") {
   if (!previewUrl) {
     authPreview.classList.add("hidden");
@@ -863,19 +902,19 @@ function showAppScreen() {
 function updateHeader() {
   const titles = {
     history: {
-      kicker: "Your archive",
+      kicker: "Archive",
       title: "History",
-      subtitle: "Open any previous scan to review the results again."
+      subtitle: "Review what was flagged in your saved scans."
     },
     scan: {
-      kicker: "Ready to scan",
-      title: "Scan",
-      subtitle: "Use your saved defaults or adjust them for this product."
+      kicker: "Dashboard",
+      title: getDashboardGreeting(),
+      subtitle: "Current checks are below. Tap the camera button to scan."
     },
     profile: {
-      kicker: "Your defaults",
+      kicker: "Profile",
       title: "Profile",
-      subtitle: "Control the checks that should be ready every time you scan."
+      subtitle: "Manage the checks that run every time you scan."
     }
   };
   const active = titles[state.activeTab];
@@ -883,17 +922,116 @@ function updateHeader() {
   headerKicker.textContent = active.kicker;
   headerTitle.textContent = active.title;
   headerSubtitle.textContent = active.subtitle;
+  newScanButton.classList.toggle("hidden", state.activeTab === "scan");
+  newScanButton.textContent = "Dashboard";
 }
 
-function setActiveTab(tab) {
+function tabOrderIndex(tab) {
+  const index = TAB_ORDER.indexOf(tab);
+  return index === -1 ? 0 : index;
+}
+
+function getAdjacentTab(currentTab, step) {
+  const nextIndex = tabOrderIndex(currentTab) + step;
+
+  if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) {
+    return "";
+  }
+
+  return TAB_ORDER[nextIndex];
+}
+
+function setActiveTab(tab, options = {}) {
+  const { animate = true } = options;
+  const previousTab = state.activeTab;
+  const nextPanel = tabPanels.find((panel) => panel.dataset.tabPanel === tab);
+  const previousPanel = tabPanels.find((panel) => panel.dataset.tabPanel === previousTab);
+
   state.activeTab = tab;
-  tabPanels.forEach((panel) => {
-    panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab);
-  });
+
+  if (
+    animate &&
+    nextPanel &&
+    previousPanel &&
+    nextPanel !== previousPanel &&
+    !previousPanel.classList.contains("hidden")
+  ) {
+    const direction = tabOrderIndex(tab) < tabOrderIndex(previousTab) ? -1 : 1;
+    const panelWidth = nextPanel.getBoundingClientRect().width || appContent.getBoundingClientRect().width || 360;
+    const travelDistance = Math.max(44, Math.round(panelWidth * 0.18));
+
+    tabPanels.forEach((panel) => {
+      if (panel !== nextPanel && panel !== previousPanel) {
+        panel.classList.add("hidden");
+      }
+    });
+
+    nextPanel.classList.remove("hidden");
+    nextPanel.animate(
+      [
+        { opacity: 0.65, transform: `translateX(${direction * travelDistance}px) scale(0.985)` },
+        { opacity: 1, transform: "translateX(0) scale(1)" }
+      ],
+      TAB_SWITCH_ANIMATION
+    );
+    previousPanel
+      .animate(
+        [
+          { opacity: 1, transform: "translateX(0) scale(1)" },
+          { opacity: 0.58, transform: `translateX(${-direction * travelDistance}px) scale(0.985)` }
+        ],
+        TAB_SWITCH_ANIMATION
+      )
+      .finished.finally(() => {
+        previousPanel.classList.add("hidden");
+      });
+  } else {
+    tabPanels.forEach((panel) => {
+      panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab);
+    });
+  }
+
   navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.tab === tab);
   });
+  appScreen.dataset.activeTab = tab;
   updateHeader();
+}
+
+function shouldIgnoreTabSwipe(target) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(target.closest("input, textarea, select, summary, a, [contenteditable='true']"));
+}
+
+function resetTabSwipe() {
+  tabSwipeState.active = false;
+  tabSwipeState.startX = 0;
+  tabSwipeState.startY = 0;
+}
+
+function handleTabSwipeEnd(event) {
+  if (!tabSwipeState.active || !event.changedTouches || event.changedTouches.length === 0) {
+    resetTabSwipe();
+    return;
+  }
+
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - tabSwipeState.startX;
+  const deltaY = touch.clientY - tabSwipeState.startY;
+  const horizontalIntent = Math.abs(deltaX) > Math.abs(deltaY) * 1.2;
+
+  if (horizontalIntent && Math.abs(deltaX) >= TAB_SWIPE_THRESHOLD) {
+    const targetTab = getAdjacentTab(state.activeTab, deltaX < 0 ? 1 : -1);
+
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
+  }
+
+  resetTabSwipe();
 }
 
 function setOcrStatus(message) {
@@ -962,6 +1100,43 @@ function renderBarcodeLookup() {
     </article>
   `;
 }
+
+appContent.addEventListener(
+  "touchstart",
+  (event) => {
+    if (!appScreen || appScreen.classList.contains("hidden") || event.touches.length !== 1) {
+      resetTabSwipe();
+      return;
+    }
+
+    if (shouldIgnoreTabSwipe(event.target)) {
+      resetTabSwipe();
+      return;
+    }
+
+    const touch = event.touches[0];
+    tabSwipeState.active = true;
+    tabSwipeState.startX = touch.clientX;
+    tabSwipeState.startY = touch.clientY;
+  },
+  { passive: true }
+);
+
+appContent.addEventListener(
+  "touchend",
+  (event) => {
+    handleTabSwipeEnd(event);
+  },
+  { passive: true }
+);
+
+appContent.addEventListener(
+  "touchcancel",
+  () => {
+    resetTabSwipe();
+  },
+  { passive: true }
+);
 
 function clearBarcodeLookup(options = {}) {
   const { preserveInput = false, preserveStatus = false } = options;
@@ -1172,7 +1347,7 @@ async function extractTextFromImage() {
 function renderCustomSensitivities() {
   if (state.customSensitivities.length === 0) {
     customList.className = "custom-list empty-state";
-    customList.textContent = "No custom sensitivities added yet.";
+    customList.textContent = "No custom checks added yet.";
     return;
   }
 
@@ -1201,6 +1376,42 @@ function renderCustomSensitivities() {
   });
 }
 
+function updateHomeGreeting() {
+  updateHeader();
+}
+
+function renderCurrentChecking() {
+  const preferences = state.currentUser ? sanitizePreferences(state.currentUser.preferences) : { presets: [], customSensitivities: [] };
+  const presetCards = state.presets
+    .filter((preset) => preferences.presets.includes(preset.id))
+    .map(
+      (preset) => `
+        <div class="check-chip">
+          <strong>${escapeHtml(preset.label)}</strong>
+          <span>${escapeHtml(preset.summary)}</span>
+        </div>
+      `
+    );
+  const customCards = preferences.customSensitivities.map(
+    (entry) => `
+      <div class="check-chip check-chip-custom">
+        <strong>${escapeHtml(entry.label)}</strong>
+        <span>${escapeHtml(entry.terms.join(", "))}</span>
+      </div>
+    `
+  );
+  const cards = presetCards.concat(customCards);
+
+  if (cards.length === 0) {
+    currentCheckingContainer.className = "current-checking empty-state";
+    currentCheckingContainer.textContent = "No checks configured yet. Add them in Profile.";
+    return;
+  }
+
+  currentCheckingContainer.className = "current-checking";
+  currentCheckingContainer.innerHTML = cards.join("");
+}
+
 function createFinding(finding) {
   const item = document.createElement("div");
   item.className = "finding";
@@ -1216,7 +1427,7 @@ function renderResults(analysis) {
     resultsContainer.className = "results empty-results";
     resultsContainer.textContent = "";
     statusBanner.className = "status-banner";
-    statusBanner.textContent = "Start with a barcode. If that fails, use OCR or paste ingredients and run an analysis.";
+    statusBanner.textContent = "Scan a product from the dashboard and the flagged result will appear here.";
     return;
   }
 
@@ -1290,20 +1501,36 @@ function renderResults(analysis) {
 }
 
 function updateDefaultsNote() {
-  const selectedPresets = state.currentUser ? sanitizePreferences(state.currentUser.preferences).presets : [];
+  const preferences = state.currentUser ? sanitizePreferences(state.currentUser.preferences) : { presets: [], customSensitivities: [] };
+  const selectedPresets = preferences.presets;
   const labels = state.presets.filter((preset) => selectedPresets.includes(preset.id)).map((preset) => preset.label);
+  const customCount = preferences.customSensitivities.length;
 
-  if (labels.length === 0) {
-    scanDefaultsNote.textContent = "No saved defaults yet. You can still choose sensitivities for each scan.";
+  if (labels.length === 0 && customCount === 0) {
+    scanDefaultsNote.textContent = "No saved checks yet. Add them in Profile.";
     return;
   }
 
-  scanDefaultsNote.textContent = `Saved defaults: ${labels.join(", ")}. They are preselected when you start a new scan.`;
+  const parts = [];
+
+  if (labels.length > 0) {
+    parts.push(labels.join(", "));
+  }
+
+  if (customCount > 0) {
+    parts.push(`${customCount} custom`);
+  }
+
+  scanDefaultsNote.textContent = `Current checks: ${parts.join(" + ")}.`;
 }
 
 function applyProfileDefaultsToScan() {
-  const selectedIds = state.currentUser ? sanitizePreferences(state.currentUser.preferences).presets : [];
-  renderPresetOptions(scanPresetGrid, "scan-preset", selectedIds);
+  const preferences = state.currentUser ? sanitizePreferences(state.currentUser.preferences) : { presets: [], customSensitivities: [] };
+
+  state.customSensitivities = preferences.customSensitivities;
+  renderCustomSensitivities();
+  updateDefaultsNote();
+  renderCurrentChecking();
 }
 
 function hydrateProfileForm() {
@@ -1311,17 +1538,22 @@ function hydrateProfileForm() {
     profileNameInput.value = "";
     profileEmailInput.value = "";
     renderPresetOptions(profilePresetGrid, "profile-preset", []);
+    state.customSensitivities = [];
+    renderCustomSensitivities();
+    updateHomeGreeting();
+    renderCurrentChecking();
     return;
   }
 
+  const preferences = sanitizePreferences(state.currentUser.preferences);
+
   profileNameInput.value = state.currentUser.name || "";
   profileEmailInput.value = state.currentUser.email || "";
-  renderPresetOptions(
-    profilePresetGrid,
-    "profile-preset",
-    sanitizePreferences(state.currentUser.preferences).presets
-  );
-  updateDefaultsNote();
+  renderPresetOptions(profilePresetGrid, "profile-preset", preferences.presets);
+  state.customSensitivities = preferences.customSensitivities;
+  renderCustomSensitivities();
+  updateHomeGreeting();
+  applyProfileDefaultsToScan();
 }
 
 function resetScanForm() {
@@ -1329,35 +1561,59 @@ function resetScanForm() {
   ingredientsTextInput.value = "";
   state.customSensitivities = [];
   state.lastExtractionSource = null;
+  fallbackTools.open = false;
   clearSelectedImage();
   clearBarcodeLookup();
   renderCustomSensitivities();
   applyProfileDefaultsToScan();
-  renderResults(null);
 }
 
-function fillFormFromAnalysis(analysis) {
-  document.querySelector("#product-name").value = analysis.productName || "";
-  barcodeInput.value = analysis.source && analysis.source.barcode ? analysis.source.barcode : "";
-  ingredientsTextInput.value = analysis.ingredientsText || "";
-  renderPresetOptions(scanPresetGrid, "scan-preset", Array.isArray(analysis.presets) ? analysis.presets : []);
-  state.customSensitivities = Array.isArray(analysis.customSensitivities) ? analysis.customSensitivities : [];
-  state.activeBarcodeLookup = null;
-  clearSelectedImage({ preserveStatus: true, preserveExtractionSource: true });
-  state.lastExtractionSource = analysis.source || null;
-  renderBarcodeLookup();
-  if (analysis.source && analysis.source.type === "barcode_api") {
-    setBarcodeStatus(`Loaded saved barcode-based analysis from ${formatSource(analysis.source)}.`, "ocr-status");
+function selectHistoryAnalysis(analysisId) {
+  state.selectedHistoryAnalysisId = analysisId || "";
+  const selectedAnalysis = state.analyses.find((analysis) => analysis.id === state.selectedHistoryAnalysisId) || null;
+
+  renderResults(selectedAnalysis);
+  updateHistorySelectionStyles();
+  resultsContainer.scrollTop = 0;
+  const selectedButton = Array.from(historyContainer.querySelectorAll(".history-item")).find(
+    (button) => button.dataset.analysisId === state.selectedHistoryAnalysisId
+  );
+
+  if (selectedButton) {
+    selectedButton.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth"
+    });
   }
-  setOcrStatus(`Loaded saved analysis from ${formatSource(analysis.source)}.`);
-  renderCustomSensitivities();
-  renderResults(analysis);
+}
+
+function syncSelectedHistoryAnalysis() {
+  if (state.analyses.length === 0) {
+    state.selectedHistoryAnalysisId = "";
+    renderResults(null);
+    return;
+  }
+
+  const exists = state.analyses.some((analysis) => analysis.id === state.selectedHistoryAnalysisId);
+
+  if (!exists) {
+    state.selectedHistoryAnalysisId = state.analyses[0].id;
+  }
+
+  selectHistoryAnalysis(state.selectedHistoryAnalysisId);
+}
+
+function updateHistorySelectionStyles() {
+  Array.from(historyContainer.querySelectorAll(".history-item")).forEach((button) => {
+    button.classList.toggle("selected", button.dataset.analysisId === state.selectedHistoryAnalysisId);
+  });
 }
 
 function renderHistory() {
   if (state.analyses.length === 0) {
     historyContainer.className = "history empty-state";
     historyContainer.textContent = "No saved analyses yet.";
+    renderResults(null);
     return;
   }
 
@@ -1368,24 +1624,32 @@ function renderHistory() {
     const fragment = historyItemTemplate.content.cloneNode(true);
     const button = fragment.querySelector(".history-item");
     const productLabel = formatAnalysisLabel(analysis);
+    const blockedCount = analysis.results.reduce((sum, entry) => sum + entry.blockedFindings.length, 0);
+    const cautionCount = analysis.results.reduce((sum, entry) => sum + entry.cautionFindings.length, 0);
+    const summaryElement = fragment.querySelector(".history-summary");
+    button.dataset.analysisId = analysis.id;
 
     fragment.querySelector(".history-name").textContent = productLabel;
     fragment.querySelector(".history-meta").textContent =
       `${formatDate(analysis.createdAt)} · ${formatSource(analysis.source)}`;
+    summaryElement.textContent = blockedCount > 0 ? `${blockedCount} flagged` : cautionCount > 0 ? `${cautionCount} caution` : "Clear";
+    summaryElement.className = `history-summary ${blockedCount > 0 ? "flagged" : cautionCount > 0 ? "caution" : "clear"}`;
 
     button.addEventListener("click", () => {
-      fillFormFromAnalysis(analysis);
-      setActiveTab("scan");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      selectHistoryAnalysis(analysis.id);
+      updateHistorySelectionStyles();
     });
 
     historyContainer.appendChild(fragment);
   });
+
+  updateHistorySelectionStyles();
 }
 
 async function loadHistory() {
   state.analyses = await dataClient.listHistory();
   renderHistory();
+  syncSelectedHistoryAnalysis();
 }
 
 async function loadRuntimeConfig() {
@@ -1435,9 +1699,9 @@ function applyAuthenticatedState(authPayload) {
   showAppScreen();
   hydrateProfileForm();
   resetScanForm();
-  setActiveTab("scan");
+  setActiveTab("scan", { animate: false });
   setInfoBanner(profileStatus, "Update your default screening preferences here.");
-  setInfoBanner(historyStatus, "Tap any saved scan to reload it into the scanner.");
+  setInfoBanner(historyStatus, "Tap any saved scan to review what was flagged.");
 }
 
 async function handleAuthError(error) {
@@ -1489,17 +1753,20 @@ async function consumeVerificationFromUrl() {
 }
 
 function buildAnalysisPayload() {
+  const preferences = state.currentUser ? sanitizePreferences(state.currentUser.preferences) : { presets: [], customSensitivities: [] };
+
   return {
     productName: document.querySelector("#product-name").value,
     ingredientsText: ingredientsTextInput.value.trim(),
-    presets: getCheckedValues("scan-preset"),
-    customSensitivities: state.customSensitivities,
+    presets: preferences.presets,
+    customSensitivities: preferences.customSensitivities,
     source: buildSourcePayload(),
     barcodeLookup: state.activeBarcodeLookup
   };
 }
 
-async function runAnalysisAndRefresh() {
+async function runAnalysisAndRefresh(options = {}) {
+  const { openHistory = false } = options;
   const ingredientsText = ingredientsTextInput.value.trim();
 
   if (!ingredientsText && !state.activeBarcodeLookup) {
@@ -1508,9 +1775,17 @@ async function runAnalysisAndRefresh() {
 
   const analysis = await dataClient.analyzeAndSave(buildAnalysisPayload());
 
-  renderResults(analysis);
   await loadHistory();
-  setInfoBanner(historyStatus, "Saved. Tap any previous scan to load it again.");
+  selectHistoryAnalysis(analysis.id);
+  updateHistorySelectionStyles();
+  setInfoBanner(historyStatus, "Saved. Your latest scan is selected below with the flagged result open.");
+
+  if (openHistory) {
+    setActiveTab("history");
+    selectHistoryAnalysis(analysis.id);
+  }
+
+  return analysis;
 }
 
 async function lookupBarcodeAndAnalyze() {
@@ -1531,7 +1806,7 @@ async function lookupBarcodeAndAnalyze() {
     barcodeInput.value = lookup.barcode || rawBarcode;
     renderBarcodeLookup();
     setBarcodeStatus("Barcode matched. Running analysis with your current preferences.");
-    await runAnalysisAndRefresh();
+    await runAnalysisAndRefresh({ openHistory: true });
   } catch (error) {
     state.activeBarcodeLookup = null;
     renderBarcodeLookup();
@@ -1556,6 +1831,19 @@ showLoginButton.addEventListener("click", () => {
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    if (button.dataset.tab === "scan") {
+      setActiveTab("scan");
+
+      if (!state.runtimeConfig.integrations.barcodeLookupEnabled) {
+        fallbackTools.open = true;
+        setBarcodeStatus("Barcode scan is unavailable here. Use the backup tools below.", "ocr-status");
+        return;
+      }
+
+      barcodeImageInput.click();
+      return;
+    }
+
     setActiveTab(button.dataset.tab);
   });
 });
@@ -1634,7 +1922,7 @@ lookupBarcodeButton.addEventListener("click", () => {
 
 clearBarcodeButton.addEventListener("click", () => {
   clearBarcodeLookup();
-  setStatusBanner("Barcode cleared. You can scan another product or use text backup.");
+  setStatusBanner("Barcode cleared. You can scan another product from the dashboard.");
 });
 
 extractButton.addEventListener("click", () => {
@@ -1665,7 +1953,8 @@ registerForm.addEventListener("submit", async (event) => {
       email: document.querySelector("#register-email").value,
       password: document.querySelector("#register-password").value,
       preferences: {
-        presets: getCheckedValues("register-preset")
+        presets: getCheckedValues("register-preset"),
+        customSensitivities: []
       }
     });
 
@@ -1741,13 +2030,13 @@ profileForm.addEventListener("submit", async (event) => {
     const payload = await dataClient.updateProfile({
       name: profileNameInput.value,
       preferences: {
-        presets: getCheckedValues("profile-preset")
+        presets: getCheckedValues("profile-preset"),
+        customSensitivities: state.customSensitivities
       }
     });
 
     state.currentUser = payload.user;
     hydrateProfileForm();
-    applyProfileDefaultsToScan();
     setInfoBanner(profileStatus, "Profile updated. New scans will use your saved defaults.");
   } catch (error) {
     if (!(await handleAuthError(error))) {
@@ -1764,9 +2053,11 @@ logoutButton.addEventListener("click", async () => {
   state.currentUser = null;
   state.analyses = [];
   state.customSensitivities = [];
+  state.selectedHistoryAnalysisId = "";
   clearWebSessionToken();
   clearNativeSession();
   renderHistory();
+  renderResults(null);
   showAuthScreen();
   setAuthMode("login");
   setInfoBanner(authStatus, "Logged out. Sign in to continue.");
@@ -1778,7 +2069,7 @@ form.addEventListener("submit", async (event) => {
   submitButton.textContent = "Analyzing...";
 
   try {
-    await runAnalysisAndRefresh();
+    await runAnalysisAndRefresh({ openHistory: true });
   } catch (error) {
     if (!(await handleAuthError(error))) {
       setStatusBanner(error.message);
