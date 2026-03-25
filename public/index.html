@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f8f1e6" />
+    <meta name="theme-color" content="#0f4cc9" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Ingredient Screen" />
@@ -18,10 +18,15 @@
       <section id="auth-screen" class="auth-screen">
         <header class="auth-hero">
           <p class="eyebrow">Ingredient Screen</p>
-          <h1>Build your profile once. Scan ingredients with your defaults already loaded.</h1>
+          <h1>Sign in first. Then scan by barcode, not by guesswork.</h1>
           <p class="hero-text">
-            Create an account, choose what matters to you, and keep every past scan tied to your profile.
+            Create a Gmail-based account, set your dietary preferences once, and keep every scan tied to your profile.
           </p>
+          <div class="hero-pill-row">
+            <span class="hero-pill">Android-ready shell</span>
+            <span class="hero-pill">Barcode-first lookup</span>
+            <span class="hero-pill">SQLite-backed history</span>
+          </div>
         </header>
 
         <section class="auth-card">
@@ -41,8 +46,9 @@
 
             <label class="field">
               <span>Email</span>
-              <input id="register-email" type="email" placeholder="you@example.com" autocomplete="email" />
+              <input id="register-email" type="email" placeholder="you@gmail.com" autocomplete="email" />
             </label>
+            <p id="register-email-hint" class="helper-text compact-helper">Use a Gmail address for account creation.</p>
 
             <label class="field">
               <span>Password</span>
@@ -112,15 +118,58 @@
               </p>
 
               <form id="analysis-form" class="stack-form">
+                <section class="lookup-card">
+                  <div class="section-heading compact-heading">
+                    <p class="section-kicker">Primary</p>
+                    <h3>Barcode lookup</h3>
+                  </div>
+
+                  <p class="helper-text">
+                    Scan or enter a barcode first. Ingredient text stays available as backup when the barcode product
+                    cannot be resolved or lacks enough dietary detail.
+                  </p>
+
+                  <div class="barcode-grid">
+                    <label class="field">
+                      <span>Barcode</span>
+                      <input
+                        id="barcode-input"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        placeholder="Scan or type UPC / EAN / GTIN"
+                      />
+                    </label>
+
+                    <div class="barcode-actions">
+                      <button id="lookup-barcode-button" class="primary-button" type="button">Lookup barcode</button>
+                      <label class="secondary-button barcode-file-button" for="barcode-image-input">Scan from camera</label>
+                      <input id="barcode-image-input" class="visually-hidden" type="file" accept="image/*" capture="environment" />
+                      <button id="clear-barcode-button" class="secondary-button" type="button">Clear barcode</button>
+                    </div>
+                  </div>
+
+                  <div id="barcode-status" class="ocr-status empty-state">
+                    No barcode lookup yet. Scan a barcode or type the number to start there.
+                  </div>
+
+                  <div id="barcode-result" class="barcode-result empty-state">No barcode product loaded.</div>
+                </section>
+
                 <label class="field">
                   <span>Product name</span>
-                  <input id="product-name" name="productName" type="text" placeholder="Optional: Masala chips" />
+                  <input
+                    id="product-name"
+                    name="productName"
+                    type="text"
+                    placeholder="Optional label for history if you want your own product name"
+                  />
                 </label>
 
                 <div class="field">
                   <div class="field-row">
-                    <span>Label photo</span>
-                    <small>Upload a label image or use your phone camera, then review the extracted text.</small>
+                    <span>Ingredient text backup</span>
+                    <small>Use OCR or paste ingredients only when barcode lookup does not fully cover the product.</small>
                   </div>
 
                   <label class="upload-box" for="image-input">
@@ -135,19 +184,19 @@
                   </div>
 
                   <div id="ocr-status" class="ocr-status empty-state">
-                    No image selected. You can still paste ingredients manually below.
+                    No image selected. Barcode lookup is the primary flow, but you can still use OCR or paste text below.
                   </div>
 
                   <div id="image-preview" class="image-preview empty-state">No label photo selected.</div>
                 </div>
 
                 <label class="field">
-                  <span>Ingredients</span>
+                  <span>Ingredients fallback</span>
                   <textarea
                     id="ingredients-text"
                     name="ingredientsText"
                     rows="8"
-                    placeholder="Paste the ingredient list here, or extract it from a label photo above"
+                    placeholder="Paste ingredients here only if barcode lookup cannot fully classify the product"
                   ></textarea>
                 </label>
 
@@ -176,7 +225,7 @@
 
                 <div class="actions">
                   <button id="submit-button" class="primary-button" type="submit">Analyze and save</button>
-                  <p class="helper-text">Results are a first-pass screen, not a religious or certification ruling.</p>
+                  <p class="helper-text">Barcode is primary. OCR and pasted text remain backup input only.</p>
                 </div>
               </form>
             </article>
@@ -258,6 +307,7 @@
     </template>
 
     <script src="/analysis-core.js" defer></script>
+    <script src="/app-config.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
     <script src="/app.js" defer></script>
   </body>

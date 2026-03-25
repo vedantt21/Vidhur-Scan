@@ -85,3 +85,40 @@ test("ingredient splitting keeps commas inside parentheses together", () => {
     "Emulsifier (471, 472)"
   ]);
 });
+
+test("barcode preferences can block vegan results without ingredient text", () => {
+  const analysis = analyzeIngredients({
+    presets: ["vegan"],
+    barcodeLookup: {
+      barcode: "0012345678901",
+      preferences: [{ name: "Vegan", value: 0 }],
+      allergens: []
+    }
+  });
+
+  const vegan = analysis.results.find((result) => result.id === "vegan");
+
+  assert.equal(vegan.status, "not_allowed");
+  assert.ok(vegan.blockedFindings.some((finding) => finding.matchedTerm === "Vegan: no"));
+});
+
+test("custom sensitivities become caution when only barcode data is available", () => {
+  const analysis = analyzeIngredients({
+    customSensitivities: [
+      {
+        label: "No garlic",
+        terms: ["garlic"]
+      }
+    ],
+    barcodeLookup: {
+      barcode: "0012345678901",
+      preferences: [],
+      allergens: []
+    }
+  });
+
+  const custom = analysis.results.find((result) => result.id === "custom:No garlic");
+
+  assert.equal(custom.status, "caution");
+  assert.ok(custom.cautionFindings.some((finding) => /ingredient list unavailable/i.test(finding.matchedTerm)));
+});

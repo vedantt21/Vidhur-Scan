@@ -3,6 +3,7 @@ const NATIVE_ANALYSES_STORAGE_KEY = "ingredient-screen.analyses";
 const NATIVE_SESSION_STORAGE_KEY = "ingredient-screen.session";
 const WEB_SESSION_TOKEN_STORAGE_KEY = "ingredient-screen.web-session-token";
 const analysisRuntime = window.IngredientAnalysis;
+const clientConfig = window.IngredientScreenConfig || {};
 
 const state = {
   presets: [],
@@ -13,7 +14,17 @@ const state = {
   analyses: [],
   selectedImage: null,
   imagePreviewUrl: "",
-  lastExtractionSource: null
+  lastExtractionSource: null,
+  activeBarcodeLookup: null,
+  runtimeConfig: {
+    auth: {
+      allowedEmailDomain: "gmail.com"
+    },
+    integrations: {
+      barcodeLookupEnabled: false,
+      barcodeProvider: "FatSecret"
+    }
+  }
 };
 
 const authScreen = document.querySelector("#auth-screen");
@@ -51,6 +62,13 @@ const customItemTemplate = document.querySelector("#custom-item-template");
 const resultsContainer = document.querySelector("#results");
 const statusBanner = document.querySelector("#status-banner");
 const submitButton = document.querySelector("#submit-button");
+const registerEmailHint = document.querySelector("#register-email-hint");
+const barcodeInput = document.querySelector("#barcode-input");
+const barcodeImageInput = document.querySelector("#barcode-image-input");
+const lookupBarcodeButton = document.querySelector("#lookup-barcode-button");
+const clearBarcodeButton = document.querySelector("#clear-barcode-button");
+const barcodeStatus = document.querySelector("#barcode-status");
+const barcodeResult = document.querySelector("#barcode-result");
 const ingredientsTextInput = document.querySelector("#ingredients-text");
 const imageInput = document.querySelector("#image-input");
 const extractButton = document.querySelector("#extract-button");
@@ -74,6 +92,24 @@ function isNativeApp() {
   }
 
   return window.location.protocol === "capacitor:" || /Capacitor/i.test(window.navigator.userAgent);
+}
+
+function getApiBaseUrl() {
+  return String(clientConfig.apiBaseUrl || "").trim().replace(/\/+$/, "");
+}
+
+function resolveApiUrl(url) {
+  const baseUrl = getApiBaseUrl();
+
+  if (!baseUrl || /^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  return `${baseUrl}${url}`;
+}
+
+function useLocalNativeStorage() {
+  return isNativeApp() && clientConfig.useNativeLocalStorage !== false && !getApiBaseUrl();
 }
 
 function normalizeEmail(value) {
@@ -248,7 +284,7 @@ function registerServiceWorker() {
 }
 
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(resolveApiUrl(url), options);
   const payload = await response.json();
 
   if (!response.ok) {
@@ -285,11 +321,12 @@ const dataClient = {
   },
 
   async register(payload) {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const name = String(payload.name || "").trim();
       const email = normalizeEmail(payload.email);
       const password = String(payload.password || "");
       const preferences = sanitizePreferences(payload.preferences);
+      const allowedDomain = state.runtimeConfig.auth.allowedEmailDomain || "gmail.com";
 
       if (!name) {
         throw new Error("Name is required.");
@@ -301,6 +338,10 @@ const dataClient = {
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new Error("Enter a valid email address.");
+      }
+
+      if (allowedDomain && !email.endsWith(`@${allowedDomain}`)) {
+        throw new Error(`Use a ${allowedDomain} address to create an account.`);
       }
 
       if (password.length < 6) {
@@ -372,7 +413,7 @@ const dataClient = {
   },
 
   async login(payload) {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const email = normalizeEmail(payload.email);
       const password = String(payload.password || "");
       const user = readStoredUsers().find((entry) => entry.email === email);
@@ -410,7 +451,7 @@ const dataClient = {
   },
 
   async resendVerification(payload) {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const email = normalizeEmail(payload.email);
       const users = readStoredUsers();
       const userIndex = users.findIndex((entry) => entry.email === email);
@@ -450,7 +491,7 @@ const dataClient = {
   },
 
   async verifyEmail(payload) {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const rawToken = String(payload.token || "").trim();
       const tokenHash = await hashLocalVerificationToken(rawToken);
       const users = readStoredUsers();
@@ -492,7 +533,7 @@ const dataClient = {
   },
 
   async getSession() {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const session = readNativeSession();
 
       if (!session) {
@@ -529,7 +570,7 @@ const dataClient = {
   },
 
   async logout() {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       clearNativeSession();
       return;
     }
@@ -541,7 +582,7 @@ const dataClient = {
   },
 
   async updateProfile(payload) {
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const session = readNativeSession();
 
       if (!session) {
@@ -581,7 +622,7 @@ const dataClient = {
       return [];
     }
 
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       return listStoredAnalysesForUser(state.currentUser.id);
     }
 
@@ -597,7 +638,7 @@ const dataClient = {
       throw new Error("Please sign in before saving scans.");
     }
 
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       const analysis = analysisRuntime.analyzeIngredients(payload);
       const record = {
         id: createId(),
@@ -619,6 +660,32 @@ const dataClient = {
     });
 
     return result.analysis;
+  },
+
+  async lookupBarcode(barcode) {
+    if (useLocalNativeStorage()) {
+      throw new Error(
+        "Barcode API lookup requires a hosted backend because FatSecret credentials must stay server-side."
+      );
+    }
+
+    const payload = await fetchJson("/api/barcode/lookup", {
+      method: "POST",
+      headers: createAuthHeaders(true),
+      body: JSON.stringify({ barcode })
+    });
+
+    return payload.lookup;
+  },
+
+  async getRuntimeConfig() {
+    if (useLocalNativeStorage()) {
+      return state.runtimeConfig;
+    }
+
+    return fetchJson("/api/runtime-config", {
+      headers: createAuthHeaders(false)
+    });
   }
 };
 
@@ -641,9 +708,25 @@ function formatDate(value) {
   });
 }
 
+function normalizeBarcodeText(value) {
+  return String(value || "").replace(/\D+/g, "");
+}
+
+function formatLookupName(lookup) {
+  if (!lookup) {
+    return "";
+  }
+
+  return [lookup.brandName, lookup.foodName].filter(Boolean).join(" ").trim();
+}
+
 function formatSource(source) {
   if (!source || !source.type) {
     return "Manual text";
+  }
+
+  if (source.type === "barcode_api") {
+    return source.fallbackUsed ? "Barcode + text backup" : "Barcode API";
   }
 
   if (source.type === "image_ocr") {
@@ -655,6 +738,55 @@ function formatSource(source) {
   }
 
   return "Manual text";
+}
+
+function formatAnalysisLabel(analysis) {
+  if (analysis && analysis.productName) {
+    return analysis.productName;
+  }
+
+  if (analysis && analysis.source && analysis.source.type === "barcode_api" && analysis.source.barcode) {
+    return `Barcode ${analysis.source.barcode}`;
+  }
+
+  return "Saved scan";
+}
+
+function setBarcodeStatus(message, className = "ocr-status") {
+  barcodeStatus.className = className;
+  barcodeStatus.textContent = message;
+}
+
+function updateRuntimeHints() {
+  const allowedDomain = state.runtimeConfig.auth.allowedEmailDomain || "gmail.com";
+  const barcodeEnabled = Boolean(state.runtimeConfig.integrations.barcodeLookupEnabled);
+
+  registerEmailHint.textContent = `Use a ${allowedDomain} address for account creation.`;
+  document.querySelector("#register-email").setAttribute("placeholder", `you@${allowedDomain}`);
+
+  if (barcodeEnabled) {
+    lookupBarcodeButton.disabled = false;
+    barcodeImageInput.disabled = false;
+    setBarcodeStatus("No barcode lookup yet. Scan a barcode or type the number to start there.", "ocr-status empty-state");
+    return;
+  }
+
+  if (useLocalNativeStorage()) {
+    lookupBarcodeButton.disabled = true;
+    barcodeImageInput.disabled = true;
+    setBarcodeStatus(
+      "Barcode API is disabled in local-only native mode. Point app-config.js at a hosted backend to enable it.",
+      "ocr-status"
+    );
+    return;
+  }
+
+  lookupBarcodeButton.disabled = true;
+  barcodeImageInput.disabled = true;
+  setBarcodeStatus(
+    "Barcode lookup is not configured on the server yet. Add FATSECRET_CLIENT_SECRET to enable it.",
+    "ocr-status"
+  );
 }
 
 function setInfoBanner(element, message) {
@@ -713,8 +845,8 @@ function setAuthMode(mode) {
   setInfoBanner(
     authStatus,
     showRegister
-      ? "Create an account to save your profile and previous scans."
-      : "Log in to load your saved screening defaults and scan history."
+      ? "Create a Gmail-based account to save your profile and previous scans."
+      : "Log in to load your saved screening defaults, barcode history, and backup OCR scans."
   );
 }
 
@@ -769,6 +901,85 @@ function setOcrStatus(message) {
   ocrStatus.textContent = message;
 }
 
+function renderFlagRows(title, items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return "";
+  }
+
+  const chips = items
+    .map((item) => {
+      const valueLabel = item.value === 1 ? "yes" : item.value === 0 ? "no" : "unknown";
+      const toneClass = item.value === 1 ? "good" : item.value === 0 ? "flagged" : "unknown";
+
+      return `<span class="flag-chip ${toneClass}">${escapeHtml(item.name)}: ${escapeHtml(valueLabel)}</span>`;
+    })
+    .join("");
+
+  return `
+    <div class="barcode-meta-group">
+      <strong>${escapeHtml(title)}</strong>
+      <div class="flag-chip-row">${chips}</div>
+    </div>
+  `;
+}
+
+function renderBarcodeLookup() {
+  if (!state.activeBarcodeLookup) {
+    barcodeResult.className = "barcode-result empty-state";
+    barcodeResult.textContent = "No barcode product loaded.";
+    return;
+  }
+
+  const lookup = state.activeBarcodeLookup;
+  const displayName = formatLookupName(lookup) || (lookup.barcode ? `Barcode ${lookup.barcode}` : "Barcode match");
+  const servingText =
+    lookup.serving && lookup.serving.description
+      ? `${lookup.serving.description}${lookup.serving.calories ? ` · ${lookup.serving.calories} kcal` : ""}`
+      : "Serving detail unavailable";
+
+  barcodeResult.className = "barcode-result";
+  barcodeResult.innerHTML = `
+    <article class="barcode-card">
+      <div class="barcode-head">
+        <div>
+          <p class="eyebrow">Live barcode match</p>
+          <h4>${escapeHtml(displayName)}</h4>
+        </div>
+        <span class="barcode-pill">${escapeHtml(lookup.barcode || "No code")}</span>
+      </div>
+      <div class="barcode-meta">
+        <div class="barcode-meta-group">
+          <strong>Food ID</strong>
+          <p>${escapeHtml(lookup.foodId || "Unavailable")}</p>
+        </div>
+        <div class="barcode-meta-group">
+          <strong>Serving</strong>
+          <p>${escapeHtml(servingText)}</p>
+        </div>
+      </div>
+      ${renderFlagRows("Dietary profile", lookup.preferences)}
+      ${renderFlagRows("Allergens", lookup.allergens)}
+    </article>
+  `;
+}
+
+function clearBarcodeLookup(options = {}) {
+  const { preserveInput = false, preserveStatus = false } = options;
+
+  state.activeBarcodeLookup = null;
+  barcodeImageInput.value = "";
+
+  if (!preserveInput) {
+    barcodeInput.value = "";
+  }
+
+  if (!preserveStatus) {
+    updateRuntimeHints();
+  }
+
+  renderBarcodeLookup();
+}
+
 function resetImagePreviewUrl() {
   if (!state.imagePreviewUrl) {
     return;
@@ -813,7 +1024,7 @@ function clearSelectedImage(options = {}) {
   renderImagePreview();
 
   if (!preserveStatus) {
-    setOcrStatus("No image selected. You can still paste ingredients manually below.");
+    setOcrStatus("No image selected. Barcode lookup is still the primary flow.");
   }
 }
 
@@ -848,7 +1059,55 @@ function extractCandidateIngredients(text) {
     .trim();
 }
 
+async function detectBarcodeFromFile(file) {
+  if (!file) {
+    throw new Error("Choose a barcode image first.");
+  }
+
+  if (typeof window.BarcodeDetector !== "function") {
+    throw new Error("This browser does not support barcode detection from images.");
+  }
+
+  const detector = new window.BarcodeDetector({
+    formats: ["ean_13", "ean_8", "upc_a", "upc_e"]
+  });
+  const bitmap = await createImageBitmap(file);
+
+  try {
+    const results = await detector.detect(bitmap);
+
+    if (!Array.isArray(results) || results.length === 0) {
+      throw new Error("No barcode was detected in that image.");
+    }
+
+    const rawValue = results[0] && results[0].rawValue ? results[0].rawValue : "";
+    const digits = normalizeBarcodeText(rawValue);
+
+    if (!digits) {
+      throw new Error("A barcode was detected, but the value could not be read.");
+    }
+
+    return digits;
+  } finally {
+    if (bitmap && typeof bitmap.close === "function") {
+      bitmap.close();
+    }
+  }
+}
+
 function buildSourcePayload() {
+  if (state.activeBarcodeLookup) {
+    return {
+      type: "barcode_api",
+      provider: state.runtimeConfig.integrations.barcodeProvider || "FatSecret",
+      barcode: state.activeBarcodeLookup.barcode || null,
+      foodId: state.activeBarcodeLookup.foodId || null,
+      servingId: state.activeBarcodeLookup.servingId || null,
+      lookupMode: "barcode",
+      fallbackUsed: Boolean(ingredientsTextInput.value.trim())
+    };
+  }
+
   if (state.lastExtractionSource) {
     return state.lastExtractionSource;
   }
@@ -957,14 +1216,14 @@ function renderResults(analysis) {
     resultsContainer.className = "results empty-results";
     resultsContainer.textContent = "";
     statusBanner.className = "status-banner";
-    statusBanner.textContent = "Choose sensitivities, paste ingredients, and run an analysis.";
+    statusBanner.textContent = "Start with a barcode. If that fails, use OCR or paste ingredients and run an analysis.";
     return;
   }
 
   resultsContainer.className = "results";
   resultsContainer.innerHTML = "";
 
-  const productLabel = analysis.productName || "Unnamed product";
+  const productLabel = formatAnalysisLabel(analysis);
   const blockedCount = analysis.results.reduce((sum, entry) => sum + entry.blockedFindings.length, 0);
   const cautionCount = analysis.results.reduce((sum, entry) => sum + entry.cautionFindings.length, 0);
 
@@ -1071,6 +1330,7 @@ function resetScanForm() {
   state.customSensitivities = [];
   state.lastExtractionSource = null;
   clearSelectedImage();
+  clearBarcodeLookup();
   renderCustomSensitivities();
   applyProfileDefaultsToScan();
   renderResults(null);
@@ -1078,11 +1338,17 @@ function resetScanForm() {
 
 function fillFormFromAnalysis(analysis) {
   document.querySelector("#product-name").value = analysis.productName || "";
+  barcodeInput.value = analysis.source && analysis.source.barcode ? analysis.source.barcode : "";
   ingredientsTextInput.value = analysis.ingredientsText || "";
   renderPresetOptions(scanPresetGrid, "scan-preset", Array.isArray(analysis.presets) ? analysis.presets : []);
   state.customSensitivities = Array.isArray(analysis.customSensitivities) ? analysis.customSensitivities : [];
+  state.activeBarcodeLookup = null;
   clearSelectedImage({ preserveStatus: true, preserveExtractionSource: true });
   state.lastExtractionSource = analysis.source || null;
+  renderBarcodeLookup();
+  if (analysis.source && analysis.source.type === "barcode_api") {
+    setBarcodeStatus(`Loaded saved barcode-based analysis from ${formatSource(analysis.source)}.`, "ocr-status");
+  }
   setOcrStatus(`Loaded saved analysis from ${formatSource(analysis.source)}.`);
   renderCustomSensitivities();
   renderResults(analysis);
@@ -1101,7 +1367,7 @@ function renderHistory() {
   state.analyses.forEach((analysis) => {
     const fragment = historyItemTemplate.content.cloneNode(true);
     const button = fragment.querySelector(".history-item");
-    const productLabel = analysis.productName || "Unnamed product";
+    const productLabel = formatAnalysisLabel(analysis);
 
     fragment.querySelector(".history-name").textContent = productLabel;
     fragment.querySelector(".history-meta").textContent =
@@ -1122,6 +1388,34 @@ async function loadHistory() {
   renderHistory();
 }
 
+async function loadRuntimeConfig() {
+  const runtimeConfig = await dataClient.getRuntimeConfig();
+
+  state.runtimeConfig = {
+    auth: {
+      allowedEmailDomain:
+        (runtimeConfig &&
+          runtimeConfig.auth &&
+          typeof runtimeConfig.auth.allowedEmailDomain === "string" &&
+          runtimeConfig.auth.allowedEmailDomain.trim()) ||
+        "gmail.com"
+    },
+    integrations: {
+      barcodeLookupEnabled: Boolean(
+        runtimeConfig && runtimeConfig.integrations && runtimeConfig.integrations.barcodeLookupEnabled
+      ),
+      barcodeProvider:
+        (runtimeConfig &&
+          runtimeConfig.integrations &&
+          runtimeConfig.integrations.barcodeProvider &&
+          String(runtimeConfig.integrations.barcodeProvider).trim()) ||
+        "FatSecret"
+    }
+  };
+
+  updateRuntimeHints();
+}
+
 async function loadPresets() {
   state.presets = await dataClient.listPresets();
   renderPresetOptions(registerPresetGrid, "register-preset", []);
@@ -1134,7 +1428,7 @@ function applyAuthenticatedState(authPayload) {
   state.sessionToken = authPayload.token || state.sessionToken;
   setAuthPreview(null);
 
-  if (!isNativeApp()) {
+  if (!useLocalNativeStorage()) {
     persistWebSessionToken(state.sessionToken);
   }
 
@@ -1152,7 +1446,7 @@ async function handleAuthError(error) {
     state.analyses = [];
     clearWebSessionToken();
 
-    if (isNativeApp()) {
+    if (useLocalNativeStorage()) {
       clearNativeSession();
     }
 
@@ -1191,6 +1485,64 @@ async function consumeVerificationFromUrl() {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
+function buildAnalysisPayload() {
+  return {
+    productName: document.querySelector("#product-name").value,
+    ingredientsText: ingredientsTextInput.value.trim(),
+    presets: getCheckedValues("scan-preset"),
+    customSensitivities: state.customSensitivities,
+    source: buildSourcePayload(),
+    barcodeLookup: state.activeBarcodeLookup
+  };
+}
+
+async function runAnalysisAndRefresh() {
+  const ingredientsText = ingredientsTextInput.value.trim();
+
+  if (!ingredientsText && !state.activeBarcodeLookup) {
+    throw new Error("Start with a barcode, or use OCR / pasted ingredients as the backup path.");
+  }
+
+  const analysis = await dataClient.analyzeAndSave(buildAnalysisPayload());
+
+  renderResults(analysis);
+  await loadHistory();
+  setInfoBanner(historyStatus, "Saved. Tap any previous scan to load it again.");
+}
+
+async function lookupBarcodeAndAnalyze() {
+  const rawBarcode = normalizeBarcodeText(barcodeInput.value);
+
+  if (!rawBarcode) {
+    throw new Error("Enter a barcode or scan one from the camera first.");
+  }
+
+  lookupBarcodeButton.disabled = true;
+  clearBarcodeButton.disabled = true;
+  setBarcodeStatus("Looking up barcode...");
+
+  try {
+    const lookup = await dataClient.lookupBarcode(rawBarcode);
+
+    state.activeBarcodeLookup = lookup;
+    barcodeInput.value = lookup.barcode || rawBarcode;
+    renderBarcodeLookup();
+    setBarcodeStatus("Barcode matched. Running analysis with your current preferences.");
+    await runAnalysisAndRefresh();
+  } catch (error) {
+    state.activeBarcodeLookup = null;
+    renderBarcodeLookup();
+    setBarcodeStatus(
+      error.message || "Barcode lookup failed. Use OCR or paste ingredients as the backup path.",
+      "ocr-status"
+    );
+    throw error;
+  } finally {
+    lookupBarcodeButton.disabled = false;
+    clearBarcodeButton.disabled = false;
   }
 }
 
@@ -1236,7 +1588,53 @@ imageInput.addEventListener("change", () => {
     return;
   }
 
-  setOcrStatus("No image selected. You can still paste ingredients manually below.");
+  setOcrStatus("No image selected. Barcode lookup is still the primary flow.");
+});
+
+barcodeInput.addEventListener("input", () => {
+  if (state.activeBarcodeLookup && normalizeBarcodeText(barcodeInput.value) !== state.activeBarcodeLookup.barcode) {
+    state.activeBarcodeLookup = null;
+    renderBarcodeLookup();
+    setBarcodeStatus("Barcode value changed. Run a new lookup when ready.");
+  }
+});
+
+barcodeImageInput.addEventListener("change", async () => {
+  const [file] = barcodeImageInput.files || [];
+
+  if (!file) {
+    return;
+  }
+
+  lookupBarcodeButton.disabled = true;
+  clearBarcodeButton.disabled = true;
+  setBarcodeStatus("Detecting barcode from camera image...");
+
+  try {
+    const detectedBarcode = await detectBarcodeFromFile(file);
+    barcodeInput.value = detectedBarcode;
+    setBarcodeStatus(`Detected barcode ${detectedBarcode}. Running lookup now.`);
+    await lookupBarcodeAndAnalyze();
+  } catch (error) {
+    setBarcodeStatus(error.message || "Could not detect a barcode in that image.");
+  } finally {
+    barcodeImageInput.value = "";
+    lookupBarcodeButton.disabled = false;
+    clearBarcodeButton.disabled = false;
+  }
+});
+
+lookupBarcodeButton.addEventListener("click", () => {
+  lookupBarcodeAndAnalyze().catch(async (error) => {
+    if (!(await handleAuthError(error))) {
+      setStatusBanner(error.message || "Barcode lookup failed.");
+    }
+  });
+});
+
+clearBarcodeButton.addEventListener("click", () => {
+  clearBarcodeLookup();
+  setStatusBanner("Barcode cleared. You can scan another product or use text backup.");
 });
 
 extractButton.addEventListener("click", () => {
@@ -1380,23 +1778,7 @@ form.addEventListener("submit", async (event) => {
   submitButton.textContent = "Analyzing...";
 
   try {
-    const ingredientsText = ingredientsTextInput.value.trim();
-
-    if (!ingredientsText) {
-      throw new Error("Paste ingredients or extract them from an image first.");
-    }
-
-    const analysis = await dataClient.analyzeAndSave({
-      productName: document.querySelector("#product-name").value,
-      ingredientsText,
-      presets: getCheckedValues("scan-preset"),
-      customSensitivities: state.customSensitivities,
-      source: buildSourcePayload()
-    });
-
-    renderResults(analysis);
-    await loadHistory();
-    setInfoBanner(historyStatus, "Saved. Tap any previous scan to load it again.");
+    await runAnalysisAndRefresh();
   } catch (error) {
     if (!(await handleAuthError(error))) {
       setStatusBanner(error.message);
@@ -1409,9 +1791,11 @@ form.addEventListener("submit", async (event) => {
 
 async function bootstrap() {
   registerServiceWorker();
+  renderBarcodeLookup();
   renderCustomSensitivities();
   renderResults(null);
   setAuthMode("register");
+  await loadRuntimeConfig();
   await loadPresets();
   await consumeVerificationFromUrl();
 

@@ -319,6 +319,84 @@
     return needle.trim().length > 0 && haystack.includes(needle);
   }
 
+  function asArray(value) {
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (value == null) {
+      return [];
+    }
+
+    return [value];
+  }
+
+  function normalizeTernary(value) {
+    const numeric = Number(value);
+
+    if (numeric === 1 || numeric === 0 || numeric === -1) {
+      return numeric;
+    }
+
+    return -1;
+  }
+
+  function sanitizeNamedFlags(collection) {
+    return asArray(collection)
+      .map((entry) => ({
+        name: String(entry && entry.name ? entry.name : "").trim(),
+        value: normalizeTernary(entry && entry.value)
+      }))
+      .filter((entry) => entry.name);
+  }
+
+  function sanitizeBarcodeLookup(barcodeLookup) {
+    if (!barcodeLookup || typeof barcodeLookup !== "object") {
+      return null;
+    }
+
+    const barcode = String(barcodeLookup.barcode || "").replace(/\D+/g, "");
+    const foodId = String(barcodeLookup.foodId || "").trim();
+    const servingId = String(barcodeLookup.servingId || "").trim();
+    const preferences = sanitizeNamedFlags(barcodeLookup.preferences);
+    const allergens = sanitizeNamedFlags(barcodeLookup.allergens);
+
+    if (!barcode && !foodId && preferences.length === 0 && allergens.length === 0) {
+      return null;
+    }
+
+    return {
+      barcode: barcode || null,
+      foodId: foodId || null,
+      servingId: servingId || null,
+      preferences,
+      allergens
+    };
+  }
+
+  function findNamedFlag(collection, name) {
+    const target = normalizeText(name);
+    const entry = collection.find((item) => normalizeText(item.name) === target);
+
+    return entry ? entry.value : null;
+  }
+
+  function barcodeFindingLabel(barcodeLookup) {
+    if (barcodeLookup && barcodeLookup.barcode) {
+      return `Barcode ${barcodeLookup.barcode}`;
+    }
+
+    return "Barcode lookup";
+  }
+
+  function buildBarcodeFinding(barcodeLookup, matchedTerm, reason) {
+    return {
+      ingredient: barcodeFindingLabel(barcodeLookup),
+      matchedTerm,
+      reason
+    };
+  }
+
   function dedupeFindings(findings) {
     const seen = new Set();
 
@@ -375,9 +453,125 @@
     return "clear";
   }
 
-  function buildPresetResult(sensitivity, ingredients) {
-    const blockedFindings = collectMatches(ingredients, sensitivity.blocked);
-    const cautionFindings = collectMatches(ingredients, sensitivity.caution);
+  function collectBarcodeMatches(sensitivityId, barcodeLookup, hasIngredientText) {
+    if (!barcodeLookup) {
+      return {
+        blockedFindings: [],
+        cautionFindings: []
+      };
+    }
+
+    const blockedFindings = [];
+    const cautionFindings = [];
+    const veganPreference = findNamedFlag(barcodeLookup.preferences, "Vegan");
+    const vegetarianPreference = findNamedFlag(barcodeLookup.preferences, "Vegetarian");
+    const milkAllergen = findNamedFlag(barcodeLookup.allergens, "Milk");
+    const eggAllergen = findNamedFlag(barcodeLookup.allergens, "Egg");
+    const fishAllergen = findNamedFlag(barcodeLookup.allergens, "Fish");
+    const shellfishAllergen = findNamedFlag(barcodeLookup.allergens, "Shellfish");
+
+    if (sensitivityId === "vegetarian") {
+      if (vegetarianPreference === 0) {
+        blockedFindings.push(
+          buildBarcodeFinding(barcodeLookup, "Vegetarian: no", "FatSecret marks this product as not vegetarian.")
+        );
+      } else if (!hasIngredientText && vegetarianPreference !== 1) {
+        cautionFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            "Vegetarian: unknown",
+            "Barcode data did not confirm vegetarian status. Use OCR or paste ingredients as backup."
+          )
+        );
+      }
+
+      if (fishAllergen === 1 || shellfishAllergen === 1) {
+        blockedFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            shellfishAllergen === 1 ? "Shellfish allergen" : "Fish allergen",
+            "FatSecret allergen data indicates seafood is present."
+          )
+        );
+      }
+    }
+
+    if (sensitivityId === "vegan") {
+      if (veganPreference === 0) {
+        blockedFindings.push(buildBarcodeFinding(barcodeLookup, "Vegan: no", "FatSecret marks this product as not vegan."));
+      } else if (!hasIngredientText && veganPreference !== 1) {
+        cautionFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            "Vegan: unknown",
+            "Barcode data did not confirm vegan status. Use OCR or paste ingredients as backup."
+          )
+        );
+      }
+
+      if (milkAllergen === 1) {
+        blockedFindings.push(buildBarcodeFinding(barcodeLookup, "Milk allergen", "FatSecret allergen data indicates milk."));
+      }
+
+      if (eggAllergen === 1) {
+        blockedFindings.push(buildBarcodeFinding(barcodeLookup, "Egg allergen", "FatSecret allergen data indicates egg."));
+      }
+
+      if (fishAllergen === 1 || shellfishAllergen === 1) {
+        blockedFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            shellfishAllergen === 1 ? "Shellfish allergen" : "Fish allergen",
+            "FatSecret allergen data indicates seafood is present."
+          )
+        );
+      }
+    }
+
+    if (sensitivityId === "halal" && !hasIngredientText) {
+      cautionFindings.push(
+        buildBarcodeFinding(
+          barcodeLookup,
+          "Halal status unavailable",
+          "FatSecret barcode data does not provide halal certification or source-tracing detail."
+        )
+      );
+    }
+
+    if (sensitivityId === "kosher") {
+      if (shellfishAllergen === 1) {
+        blockedFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            "Shellfish allergen",
+            "FatSecret allergen data indicates shellfish, which is not kosher."
+          )
+        );
+      }
+
+      if (!hasIngredientText) {
+        cautionFindings.push(
+          buildBarcodeFinding(
+            barcodeLookup,
+            "Kosher status unavailable",
+            "FatSecret barcode data does not provide kosher certification or source-tracing detail."
+          )
+        );
+      }
+    }
+
+    return {
+      blockedFindings: dedupeFindings(blockedFindings),
+      cautionFindings: dedupeFindings(cautionFindings)
+    };
+  }
+
+  function buildPresetResult(sensitivity, ingredients, barcodeLookup) {
+    const ingredientBlockedFindings = collectMatches(ingredients, sensitivity.blocked);
+    const ingredientCautionFindings = collectMatches(ingredients, sensitivity.caution);
+    const barcodeMatches = collectBarcodeMatches(sensitivity.id, barcodeLookup, ingredients.length > 0);
+    const blockedFindings = dedupeFindings(ingredientBlockedFindings.concat(barcodeMatches.blockedFindings));
+    const cautionFindings = dedupeFindings(ingredientCautionFindings.concat(barcodeMatches.cautionFindings));
 
     return {
       id: sensitivity.id,
@@ -389,7 +583,7 @@
     };
   }
 
-  function buildCustomResult(customSensitivity, ingredients) {
+  function buildCustomResult(customSensitivity, ingredients, barcodeLookup) {
     const blockedFindings = [];
 
     for (const ingredient of ingredients) {
@@ -407,14 +601,24 @@
     }
 
     const deduped = dedupeFindings(blockedFindings);
+    const cautionFindings =
+      ingredients.length === 0 && barcodeLookup
+        ? [
+            buildBarcodeFinding(
+              barcodeLookup,
+              "Ingredient list unavailable",
+              `Custom sensitivity "${customSensitivity.label}" needs ingredient text. Use OCR or paste ingredients as backup.`
+            )
+          ]
+        : [];
 
     return {
       id: `custom:${customSensitivity.label}`,
       label: customSensitivity.label,
       summary: "Custom keyword match.",
-      status: deduped.length > 0 ? "not_allowed" : "clear",
+      status: summariseStatus(deduped, cautionFindings),
       blockedFindings: deduped,
-      cautionFindings: []
+      cautionFindings
     };
   }
 
@@ -446,15 +650,27 @@
     const type = String(source.type || "").trim();
     const fileName = String(source.fileName || "").trim();
     const extractionMethod = String(source.extractionMethod || "").trim();
+    const provider = String(source.provider || "").trim();
+    const barcode = String(source.barcode || "").replace(/\D+/g, "");
+    const foodId = String(source.foodId || "").trim();
+    const servingId = String(source.servingId || "").trim();
+    const lookupMode = String(source.lookupMode || "").trim();
+    const fallbackUsed = Boolean(source.fallbackUsed);
 
-    if (!type && !fileName && !extractionMethod) {
+    if (!type && !fileName && !extractionMethod && !provider && !barcode && !foodId && !servingId && !lookupMode) {
       return null;
     }
 
     return {
       type: type || "manual_text",
       fileName: fileName || null,
-      extractionMethod: extractionMethod || null
+      extractionMethod: extractionMethod || null,
+      provider: provider || null,
+      barcode: barcode || null,
+      foodId: foodId || null,
+      servingId: servingId || null,
+      lookupMode: lookupMode || null,
+      fallbackUsed
     };
   }
 
@@ -463,7 +679,8 @@
     ingredientsText = "",
     presets = [],
     customSensitivities = [],
-    source = null
+    source = null,
+    barcodeLookup = null
   }) {
     const ingredients = splitIngredients(ingredientsText);
     const presetIds = Array.isArray(presets)
@@ -471,9 +688,12 @@
       : [];
     const safeCustomSensitivities = sanitizeCustomSensitivities(customSensitivities);
     const safeSource = sanitizeSource(source);
+    const safeBarcodeLookup = sanitizeBarcodeLookup(barcodeLookup);
 
-    const presetResults = presetIds.map((id) => buildPresetResult(PRESET_SENSITIVITIES[id], ingredients));
-    const customResults = safeCustomSensitivities.map((entry) => buildCustomResult(entry, ingredients));
+    const presetResults = presetIds.map((id) => buildPresetResult(PRESET_SENSITIVITIES[id], ingredients, safeBarcodeLookup));
+    const customResults = safeCustomSensitivities.map((entry) =>
+      buildCustomResult(entry, ingredients, safeBarcodeLookup)
+    );
     const results = presetResults.concat(customResults);
 
     return {
@@ -503,6 +723,7 @@
     containsTerm,
     listPresetSensitivities,
     normalizeText,
+    sanitizeBarcodeLookup,
     sanitizeSource,
     splitIngredients
   };

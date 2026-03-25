@@ -3,8 +3,10 @@ const assert = require("node:assert/strict");
 
 const {
   createVerificationToken,
+  getAllowedEmailDomain,
   hashPassword,
   hashVerificationToken,
+  isAllowedRegistrationEmail,
   isUserVerified,
   isValidEmail,
   normalizeEmail,
@@ -20,6 +22,12 @@ test("isValidEmail rejects malformed addresses", () => {
   assert.equal(isValidEmail("person@example.com"), true);
   assert.equal(isValidEmail("person@example"), false);
   assert.equal(isValidEmail("not-an-email"), false);
+});
+
+test("registration is restricted to the configured Gmail domain by default", () => {
+  assert.equal(getAllowedEmailDomain(), "gmail.com");
+  assert.equal(isAllowedRegistrationEmail("person@gmail.com"), true);
+  assert.equal(isAllowedRegistrationEmail("person@example.com"), false);
 });
 
 test("hashPassword and verifyPassword accept the original password", () => {

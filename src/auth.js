@@ -4,6 +4,7 @@ const { PRESET_SENSITIVITIES } = require("./analyzer");
 
 const PASSWORD_KEY_LENGTH = 64;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEFAULT_ALLOWED_EMAIL_DOMAIN = "gmail.com";
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -11,6 +12,25 @@ function normalizeEmail(email) {
 
 function isValidEmail(email) {
   return EMAIL_PATTERN.test(normalizeEmail(email));
+}
+
+function getAllowedEmailDomain() {
+  return String(process.env.AUTH_ALLOWED_EMAIL_DOMAIN || DEFAULT_ALLOWED_EMAIL_DOMAIN).trim().toLowerCase();
+}
+
+function isAllowedRegistrationEmail(email) {
+  const normalized = normalizeEmail(email);
+  const allowedDomain = getAllowedEmailDomain();
+
+  if (!isValidEmail(normalized)) {
+    return false;
+  }
+
+  if (!allowedDomain) {
+    return true;
+  }
+
+  return normalized.endsWith(`@${allowedDomain}`);
 }
 
 function sanitizePreferences(preferences) {
@@ -90,8 +110,10 @@ function sanitizeUser(user) {
 module.exports = {
   createVerificationToken,
   createSessionToken,
+  getAllowedEmailDomain,
   hashPassword,
   hashVerificationToken,
+  isAllowedRegistrationEmail,
   isUserVerified,
   isValidEmail,
   normalizeEmail,

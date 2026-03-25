@@ -1,3 +1,5 @@
+require("./load-env");
+
 const http = require("node:http");
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -20,8 +22,10 @@ const {
 const {
   createVerificationToken,
   createSessionToken,
+  getAllowedEmailDomain,
   hashPassword,
   hashVerificationToken,
+  isAllowedRegistrationEmail,
   isUserVerified,
   isValidEmail,
   normalizeEmail,
@@ -29,6 +33,7 @@ const {
   sanitizeUser,
   verifyPassword
 } = require("./auth");
+const { hasFatSecretCredentials, lookupFoodByBarcode } = require("./fatsecret");
 const { sendVerificationEmail } = require("./mailer");
 
 const HOST = process.env.HOST || "127.0.0.1";
@@ -190,6 +195,19 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/runtime-config") {
+    sendJson(response, 200, {
+      auth: {
+        allowedEmailDomain: getAllowedEmailDomain()
+      },
+      integrations: {
+        barcodeLookupEnabled: hasFatSecretCredentials(),
+        barcodeProvider: "FatSecret"
+      }
+    });
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/auth/register") {
     let body;
 
@@ -217,6 +235,13 @@ async function handleApi(request, response, url) {
 
     if (!isValidEmail(email)) {
       sendJson(response, 400, { error: "Enter a valid email address." });
+      return;
+    }
+
+    if (!isAllowedRegistrationEmail(email)) {
+      sendJson(response, 400, {
+        error: `Use a ${getAllowedEmailDomain()} address to create an account.`
+      });
       return;
     }
 
@@ -475,6 +500,42 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/barcode/lookup") {
+    const auth = await requireUser(request, response);
+
+    if (!auth) {
+      return;
+    }
+
+    let body;
+
+    try {
+      body = await readRequestBody(request);
+    } catch (error) {
+      sendJson(response, 400, { error: "Invalid JSON payload." });
+      return;
+    }
+
+    const barcode = String(body.barcode || "").trim();
+
+    if (!barcode) {
+      sendJson(response, 400, { error: "Barcode is required." });
+      return;
+    }
+
+    try {
+      const lookup = await lookupFoodByBarcode({
+        barcode,
+        userId: auth.user.id
+      });
+
+      sendJson(response, 200, { lookup });
+    } catch (error) {
+      sendJson(response, error.statusCode || 502, { error: error.message || "Barcode lookup failed." });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/analyze") {
     const auth = await requireUser(request, response);
 
@@ -491,8 +552,11 @@ async function handleApi(request, response, url) {
       return;
     }
 
-    if (!body.ingredientsText || !String(body.ingredientsText).trim()) {
-      sendJson(response, 400, { error: "Ingredients text is required." });
+    const hasIngredientsText = Boolean(String(body.ingredientsText || "").trim());
+    const hasBarcodeLookup = Boolean(body.barcodeLookup && typeof body.barcodeLookup === "object");
+
+    if (!hasIngredientsText && !hasBarcodeLookup) {
+      sendJson(response, 400, { error: "Use a barcode lookup or provide ingredients text." });
       return;
     }
 

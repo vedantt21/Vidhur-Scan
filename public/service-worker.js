@@ -1,5 +1,14 @@
-const CACHE_NAME = "ingredient-screen-v2";
-const APP_ASSETS = ["/", "/index.html", "/styles.css", "/app.js", "/analysis-core.js", "/manifest.json", "/icon.svg"];
+const CACHE_NAME = "ingredient-screen-v3";
+const APP_ASSETS = [
+  "/",
+  "/index.html",
+  "/styles.css",
+  "/app.js",
+  "/app-config.js",
+  "/analysis-core.js",
+  "/manifest.json",
+  "/icon.svg"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

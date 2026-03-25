@@ -9,6 +9,9 @@
     "test": "node --test",
     "preview:phone": "HOST=0.0.0.0 node src/server.js",
     "check:frontend": "node --check public/analysis-core.js && node --check public/app.js",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
     "ios:sync": "npx cap sync ios",
     "ios:open": "npx cap open ios"
   },
@@ -24,5 +27,10 @@
   "license": "MIT",
   "dependencies": {
     "nodemailer": "^6.10.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
   }
 }
